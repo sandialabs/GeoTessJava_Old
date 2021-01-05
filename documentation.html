@@ -1,0 +1,64 @@
+<html>
+<head>
+<title>GeoTess Java Documentation</title>
+</head>
+<body>
+<h2>GeoTess Java</h2>
+
+<h3>User's Manual</h3>
+The <a href="GeoTessUsersManual2020.pdf">User's Manual</a>
+provides a high level overview of GeoTess.
+
+<h3>GeoTess Library</h3>
+GeoTess Java is mainly intended to be used as a
+library in other java applications.  To use it in this capacity,
+include a statement in your java code to <tt>import geotess.jar</tt>.
+geotess.jar resides in the GeoTessJava directory (the same directory as this documentation file).  A complete description of the GeoTessJava interface can be found in the javadocs:
+
+<p><a href="doc/index.html">GeoTess JavaDocs</a>
+
+<p>The source code for the library is provided in the <tt>src</tt> directory and several example applications can be found in the <tt>src\main\java\gov\sandia\geotess\examples</tt> directory.  The examples illustrate how to
+<ul>
+<li><tt>TestCrust20</tt> - interrogate a model for interpolated model values
+<li><tt>PopulateModel2D</tt> - populate a 2D model with data
+<li><tt>PopulateModel3D</tt> - populate a 3D model with data
+<li><tt>GeotessModelExtended</tt> - extend GeoTessModel.java to manage
+user defined data that cannot be stored in the base class.
+</ul>
+
+
+<h3>GeoTessExplorer Application</h3>
+GeoTess can be launched as an application called GeoTessExplorer
+which can perform various utilities related to GeoTessModels
+and GeoTessGrids.  To try this out immediately, go to the
+GeoTessJava directory and type
+<p><tt>java -Xmx1024m -jar geotess.jar</tt>
+<p>GeoTessExplorer will print out a list of the functions it can
+perform.  Append the name of any of the listed functions as a command
+line argument and GeoTessExplorer will list the additional arguments
+that must be supplied in order to perform the desired function.
+
+<p>To configure GeoTessExplorer to be more conveniently accessible,
+execute the bash script <tt>configure_geotess.sh</tt> which is located
+ in the GeoTessJava directory.  This script generates
+a two-line executable script called
+<tt>geotess</tt> that will launch the GeoTessExplorer
+application.  The configuration script also prints to
+the screen a recommended addition to the user's PATH
+environment variable that will make the executable
+accessible from any directory. No modifications to the
+user's environment are performed by the configuration
+script.  After running <tt>configure_geotess.sh</tt> and making
+the recommended addition to the user's <tt>.cshrc</tt> or <tt>.bash_profile</tt>
+file, executing the command <tt>geotess</tt> from any directory will
+launch GeoTessExplorer.
+
+<h3>GeoTessModels</h3>
+A number of GeoTessModel and GeoTessGrid objects are delivered with the GeoTessJava package.  They can be found in the GeoTessModels subdirectory.  The file GeoTessModels/crust20.geotess contains
+a version of the Crust 2.0 model of Bassin, Laske and Masters (2000).  To extract information
+about the model execute
+<p><tt>java -Xmx1024m -jar geotess.jar toString GeoTessModels/crust20.geotess</tt>
+<p>The GeoTessModels directory includes several GeoTessGrid files. Most have file names of the form <tt>geotess_grid_xxxxx.geotess</tt> where <tt>xxxxx</tt> reflects the edge lengths of the triangles in millidegrees.  The file <tt>small_model_grid.ascii</tt> contains a grid with 3 multi-level tessellations having geographic resolutions of 64, 32 and 16 degrees, respectively.
+
+</body>
+</html>
