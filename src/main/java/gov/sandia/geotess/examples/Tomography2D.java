@@ -55,9 +55,6 @@ import gov.sandia.gmp.util.numerical.vector.EarthShape;
  * GeoTessBuilder but containing attenuation values copied or interpolated from
  * the original model.
  * </ol>
- * 
- * @author sballar
- * 
  */
 public class Tomography2D
 {

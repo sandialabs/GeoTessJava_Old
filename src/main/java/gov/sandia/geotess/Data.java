@@ -36,15 +36,13 @@
 //
 package gov.sandia.geotess;
 
+import gov.sandia.gmp.util.globals.DataType;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Scanner;
-
-// practice merge
-
-import gov.sandia.gmp.util.globals.DataType;
 
 /**
  * Abstract class that manages the data values attached to single grid node in
@@ -54,9 +52,6 @@ import gov.sandia.gmp.util.globals.DataType;
  * <p>
  * There is no public constructor. Call the constructor of one of the derived
  * classes to obtain an instance.
- * 
- * @author Sandy Ballard
- * 
  */
 public abstract class Data 
 {

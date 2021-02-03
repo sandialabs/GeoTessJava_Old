@@ -35,19 +35,16 @@
 
 package gov.sandia.geotess;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Scanner;
-
 import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
 import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
 import gov.sandia.gmp.util.containers.hash.maps.HashMapIntegerDouble;
 import gov.sandia.gmp.util.globals.InterpolatorType;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.*;
 
 /**
  * A Profile defines the distribution of Data along a radial profile through a
@@ -70,8 +67,6 @@ import gov.sandia.gmp.util.globals.InterpolatorType;
  * <p>
  * There is no public constructor. Call the constructor of one of the derived
  * classes to obtain an instance.
- * 
- * @author Sandy Ballard
  */
 public abstract class Profile
 {
@@ -81,6 +76,11 @@ public abstract class Profile
 	
 	public static Profile newProfile(float[] radii, Data[] data) throws GeoTessException
 	{
+		for (int i=1; i<radii.length; ++i)
+			if (radii[i-1] > radii[i])
+				throw new GeoTessException("radii are not monotonically increasing\nradii=  "
+						+Arrays.toString(radii));
+				
 		if (radii.length == 2 && data.length == 0)
 			// EMPTY layer defined by two radii and no data
 			return new ProfileEmpty(radii[0], radii[1]);

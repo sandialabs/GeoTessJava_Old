@@ -1,21 +1,48 @@
+//- ****************************************************************************
+//-
+//- Copyright 2009 Sandia Corporation. Under the terms of Contract
+//- DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+//- retains certain rights in this software.
+//-
+//- BSD Open Source License.
+//- All rights reserved.
+//-
+//- Redistribution and use in source and binary forms, with or without
+//- modification, are permitted provided that the following conditions are met:
+//-
+//-    * Redistributions of source code must retain the above copyright notice,
+//-      this list of conditions and the following disclaimer.
+//-    * Redistributions in binary form must reproduce the above copyright
+//-      notice, this list of conditions and the following disclaimer in the
+//-      documentation and/or other materials provided with the distribution.
+//-    * Neither the name of Sandia National Laboratories nor the names of its
+//-      contributors may be used to endorse or promote products derived from
+//-      this software without specific prior written permission.
+//-
+//- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+//- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+//- ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+//- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+//- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+//- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+//- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+//- POSSIBILITY OF SUCH DAMAGE.
+//-
+//- ****************************************************************************
+
 package gov.sandia.geotess.extensions.rstt;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
+import gov.sandia.geotess.*;
+
+import java.io.*;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
-
-import gov.sandia.geotess.GeoTessException;
-import gov.sandia.geotess.GeoTessGrid;
-import gov.sandia.geotess.GeoTessMetaData;
-import gov.sandia.geotess.GeoTessModel;
-import gov.sandia.geotess.GeoTessUtils;
 
 public class GeoTessModelSLBMPDU extends GeoTessModel {
 
@@ -32,7 +59,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	 * Phase supported by this model.
 	 */
 	private String phase;
-	
+
 	private Map<String, String> properties;
 
 	/**
@@ -64,13 +91,13 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	 */
 	private int randomErrorIndex;
 
-    /**
-     * Classes that extend GeoTessModel must override this method
-     * and populate their 'extra' data with shallow copies from the model 
-     * specified in the parameter list.  
-     * @param other the other model from which to copy extra data
-     * @throws Exception 
-     */
+	/**
+	 * Classes that extend GeoTessModel must override this method
+	 * and populate their 'extra' data with shallow copies from the model
+	 * specified in the parameter list.
+	 * @param other the other model from which to copy extra data
+	 * @throws Exception
+	 */
 	@Override
 	public void copyDerivedClassData(GeoTessModel other) throws Exception {
 		super.copyDerivedClassData(other);
@@ -87,13 +114,13 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 		this.distanceBins = fs;
 		return this;
 	}
-	
+
 	public GeoTessModelSLBMPDU setProperties(Map<String, String> properties)
 	{
 		this.properties = properties;
 		return this;
 	}
-	
+
 	public Map<String, String> getProperties()
 	{
 		return properties;
@@ -106,7 +133,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	/**
 	 * Construct a new GeoTessModel object and populate it with information from the
 	 * specified file.
-	 * 
+	 *
 	 * @param modelInputFile   name of file containing the model.
 	 * @param relativeGridPath the relative path from the directory where the model
 	 *                         is stored to the directory where the grid is stored.
@@ -133,13 +160,13 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	/**
 	 * Construct a new GeoTessModel object and populate it with information from the
 	 * specified file.
-	 * 
+	 *
 	 * <p>
 	 * relativeGridPath is assumed to be "" (empty string), which is appropriate
 	 * when the grid information is stored in the same file as the model or when the
 	 * grid is stored in a separate file located in the same directory as the model
 	 * file.
-	 * 
+	 *
 	 * @param modelInputFile name of file containing the model.
 	 * @throws IOException
 	 */
@@ -151,7 +178,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	/**
 	 * Construct a new GeoTessModel object and populate it with information from the
 	 * specified file.
-	 * 
+	 *
 	 * @param modelInputFile   name of file containing the model.
 	 * @param relativeGridPath the relative path from the directory where the model
 	 *                         is stored to the directory where the grid is stored.
@@ -178,13 +205,13 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	/**
 	 * Construct a new GeoTessModel object and populate it with information from the
 	 * specified file.
-	 * 
+	 *
 	 * <p>
 	 * relativeGridPath is assumed to be "" (empty string), which is appropriate
 	 * when the grid information is stored in the same file as the model or when the
 	 * grid is stored in a separate file located in the same directory as the model
 	 * file.
-	 * 
+	 *
 	 * @param modelInputFile name of file containing the model.
 	 * @throws IOException
 	 */
@@ -197,7 +224,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	 * Construct a new GeoTessModelSLBMPDU object and populate it with information
 	 * from the specified DataInputStream. The GeoTessGrid will be read directly
 	 * from the inputStream as well.
-	 * 
+	 *
 	 * @param inputStream
 	 * @throws GeoTessException
 	 * @throws IOException
@@ -211,7 +238,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	 * Construct a new GeoTessModelSLBMPDU object and populate it with information
 	 * from the specified Scanner. The GeoTessGrid will be read directly from the
 	 * inputScanner as well.
-	 * 
+	 *
 	 * @param inputScanner
 	 * @throws GeoTessException
 	 * @throws IOException
@@ -227,7 +254,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	 * information supplied in metadata. The data structures are not populated with
 	 * any information however (all Profiles are null). The application should
 	 * populate the new model's Profiles after this constructor completes.
-	 * 
+	 *
 	 * <p>
 	 * Before calling this constructor, the supplied MetaData object must be
 	 * populated with required information by calling the following MetaData
@@ -240,7 +267,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	 * <li>setLayerTessIds() (only required if grid has more than one multi-level
 	 * tessellation)
 	 * </ul>
-	 * 
+	 *
 	 * @param gridFileName name of file from which to load the grid.
 	 * @param metaData     MetaData the new GeoTessModel instantiates a reference to
 	 *                     the supplied metaData. No copy is made.
@@ -256,7 +283,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	 * information supplied in metadata. The data structures are not populated with
 	 * any information however (all Profiles are null). The application should
 	 * populate the new model's Profiles after this constructor completes.
-	 * 
+	 *
 	 * <p>
 	 * Before calling this constructor, the supplied MetaData object must be
 	 * populated with required information by calling the following MetaData
@@ -271,7 +298,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	 * <li>setSoftwareVersion()
 	 * <li>setGenerationDate()
 	 * </ul>
-	 * 
+	 *
 	 * @param grid     a reference to the GeoTessGrid that will support this
 	 *                 GeoTessModel.
 	 * @param metaData MetaData the new GeoTessModel instantiates a reference to the
@@ -288,7 +315,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 	 * GeoTessMetaData, GeoTessGrid and all the Profiles in the baseModel. No copies
 	 * are made. Changes to one will be reflected in the other. All of the extraData
 	 * will be set to default values.
-	 * 
+	 *
 	 * @param baseModel
 	 * @throws GeoTessException
 	 */
@@ -381,12 +408,12 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 						line.substring(p+1, line.length()).trim().replaceAll("<NEWLINE>", "\n"));
 			line = input.nextLine().trim();
 		}
-		
+
 		phase = properties.get("phase");
 
 		while (!line.equals("# Distance Bins"))
 			line = input.nextLine();
-		
+
 		line = input.nextLine();
 		String[] tokens = line.trim().replaceAll(",", " ").trim().split("\\s+");
 		this.distanceBins = new float[tokens.length];
@@ -425,9 +452,9 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 		int nProperties = input.readInt();
 		properties = new LinkedHashMap<>(nProperties);
 		for (int i=0; i<nProperties; ++i)
-			properties.put(GeoTessUtils.readString(input), 
+			properties.put(GeoTessUtils.readString(input),
 					GeoTessUtils.readString(input).replaceAll("<NEWLINE>", "\n"));
-		
+
 		phase = properties.get("phase");
 
 		int nBins = input.readInt();
@@ -457,11 +484,11 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 
 		//output.write(String.format("# Properties:%n%d%n", properties.size()));
 		for (Entry<String, String> entry : properties.entrySet())
-			output.write(String.format("%s = %s%n", entry.getKey(), 
+			output.write(String.format("%s = %s%n", entry.getKey(),
 					entry.getValue().replaceAll("\n", "<NEWLINE>")));
-		
+
 		output.write("\n");
-		
+
 		output.write(String.format("# Distance Bins%n%s%n",
 				Arrays.toString(distanceBins).replace("[", "").replace("]", "")));
 	}
@@ -480,7 +507,7 @@ public class GeoTessModelSLBMPDU extends GeoTessModel {
 		// With this information, if the format changes in a future release
 		// it may be possible to make the class backward compatible.
 		output.writeInt(1);
-		
+
 		output.writeInt(properties.size());
 		for (Entry<String, String> entry : properties.entrySet())
 		{

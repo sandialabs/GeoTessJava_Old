@@ -35,29 +35,6 @@
 
 package gov.sandia.geotess;
 
-import static java.lang.Math.PI;
-import static java.lang.Math.abs;
-import static java.lang.Math.ceil;
-import static java.lang.Math.max;
-
-import java.awt.Color;
-import java.awt.image.BufferedImage;
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Scanner;
-
 import gov.sandia.gmp.util.colormap.ColorMap;
 import gov.sandia.gmp.util.colormap.SimpleColorMap;
 import gov.sandia.gmp.util.containers.Tuple;
@@ -73,6 +50,18 @@ import gov.sandia.gmp.util.numerical.polygon.GreatCircle.GreatCircleException;
 import gov.sandia.gmp.util.numerical.vector.EarthShape;
 import gov.sandia.gmp.util.numerical.vector.Vector3D;
 import gov.sandia.gmp.util.numerical.vector.VectorUnit;
+import gov.sandia.gmp.util.vtk.VTKCell;
+import gov.sandia.gmp.util.vtk.VTKCellType;
+import gov.sandia.gmp.util.vtk.VTKDataSet;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.util.List;
+import java.util.*;
+import java.util.Map.Entry;
+
+import static java.lang.Math.*;
 
 /**
  * A collection of static utilities that extract organized information from a
@@ -87,9 +76,6 @@ import gov.sandia.gmp.util.numerical.vector.VectorUnit;
  * <li>attribute values interpolated on a vertical slice through a model.
  * <li>attribute values along a radial 'borehole' at a specified position.
  * </ul>
- * 
- * @author sballar
- * 
  */
 public class GeoTessModelUtils
 {
@@ -98,9 +84,6 @@ public class GeoTessModelUtils
 	 * and as an xy point projected using a Robinson projection. This class
 	 * implements methods equals() and hashCode() making it suitable for storing
 	 * in Set and Map objects.
-	 * 
-	 * @author sballar
-	 * 
 	 */
 	public static class Point
 	{
@@ -4098,25 +4081,6 @@ public class GeoTessModelUtils
 			throws IOException
 	{
 		InputStream inp = GeoTessModelUtils.class.getResourceAsStream("/continent_boundaries.vtk");
-		/*if (inp == null)
-		{
-			inp = GeoTessModelUtils.class.getResourceAsStream("/resources/continent_boundaries.vtk");
-			if (inp == null)
-			{
-				inp = GeoTessModelUtils.class.getResourceAsStream("/geo-tess-java/resources/continent_boundaries.vtk");
-				if (inp == null)
-				{
-					inp = new FileInputStream(PropertiesPlus.convertWinFilePathToLinux("\\\\tonto2\\GNEM\\devlpool\\sballar\\public\\GeoTess\\continent_boundaries.vtk"));
-					System.out.println("Retrieved "+PropertiesPlus.convertWinFilePathToLinux("\\\\tonto2\\GNEM\\devlpool\\sballar\\public\\GeoTess\\continent_boundaries.vtk"));
-				}
-				else
-					System.out.println("Retrieved /geo-tess-java/resources/continent_boundaries.vtk");
-			}
-			else
-				System.out.println("Retrieved /resources/continent_boundaries.vtk");
-		}
-		else
-			System.out.println("Retrieved /continent_boundaries.vtk");*/
 
 		Scanner input = new Scanner(inp);
 
@@ -5144,6 +5108,37 @@ public class GeoTessModelUtils
 			throw new IOException(e);
 		}
 
+	}
+
+	public static void vtkNPoints(GeoTessModel model, int layer, File vtkFile) throws Exception
+	{
+		GeoTessGrid grid = model.getGrid(); 
+
+		ArrayList<VTKCell> cells = new ArrayList<>(model.getGrid().getNTriangles()); 
+		int tessId= model.getMetaData().getTessellation(layer); 
+		int level = grid.getNLevels(tessId)-1; 
+		for (int t=grid.getFirstTriangle(tessId, level); t <= grid.getLastTriangle(tessId, level); ++t) 
+			cells.add(new VTKCell(VTKCellType.VTK_TRIANGLE, grid.getTriangleVertexIndexes(t))); 
+
+		float[][] data = new float[grid.getNVertices()][1];
+		for (int i=0; i<data.length; ++i)
+			for (int j=0; j<data[i].length; ++j)
+				data[i][j] = model.getProfile(i, layer).getNData();
+
+		VTKDataSet.write(vtkFile, 
+				grid.getVertices(), cells.toArray(new VTKCell[cells.size()]), 
+				new String[] {"npoints"}, data); 
+
+
+	}
+
+	public static void vtkNPoints(GeoTessModel model, File vtkDir, String vtkFileName) throws Exception
+	{
+		for (int layer=0; layer<model.getNLayers(); ++layer)
+		{
+			File vtkFile = new File(vtkDir, String.format(vtkFileName, layer));
+			GeoTessModelUtils.vtkNPoints(model, layer, vtkFile);
+		}
 	}
 
 }

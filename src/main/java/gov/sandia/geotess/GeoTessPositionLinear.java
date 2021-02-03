@@ -35,11 +35,11 @@
 
 package gov.sandia.geotess;
 
-import java.util.ArrayList;
-
 import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
 import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
 import gov.sandia.gmp.util.globals.InterpolatorType;
+
+import java.util.ArrayList;
 
 /**
  * Perform linear interpolation for an arbitrary point in the 3D model. First
@@ -49,9 +49,6 @@ import gov.sandia.gmp.util.globals.InterpolatorType;
  * <p>
  * There is no public constructor. Call
  * GeoTessModel.getPosition(InterpolatorType.LINEAR) to obtain an instance.
- * 
- * @author Sandy Ballard
- * 
  */
 public class GeoTessPositionLinear extends GeoTessPosition
 {

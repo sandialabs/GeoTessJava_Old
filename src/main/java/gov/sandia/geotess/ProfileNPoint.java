@@ -35,27 +35,20 @@
 
 package gov.sandia.geotess;
 
-import static gov.sandia.gmp.util.globals.Globals.NL;
+import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
+import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
+import gov.sandia.gmp.util.globals.InterpolatorType;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 
-import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
-import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
-import gov.sandia.gmp.util.globals.InterpolatorType;
+import static gov.sandia.gmp.util.globals.Globals.NL;
 
 /**
  * A Profile defined by two or more radii and an equal number of Data objects.
- * 
- * @author Sandy Ballard
- * 
  */
 public class ProfileNPoint extends Profile
 {

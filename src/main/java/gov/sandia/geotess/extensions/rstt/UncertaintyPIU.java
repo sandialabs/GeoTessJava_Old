@@ -1,16 +1,41 @@
+//- ****************************************************************************
+//-
+//- Copyright 2009 Sandia Corporation. Under the terms of Contract
+//- DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+//- retains certain rights in this software.
+//-
+//- BSD Open Source License.
+//- All rights reserved.
+//-
+//- Redistribution and use in source and binary forms, with or without
+//- modification, are permitted provided that the following conditions are met:
+//-
+//-    * Redistributions of source code must retain the above copyright notice,
+//-      this list of conditions and the following disclaimer.
+//-    * Redistributions in binary form must reproduce the above copyright
+//-      notice, this list of conditions and the following disclaimer in the
+//-      documentation and/or other materials provided with the distribution.
+//-    * Neither the name of Sandia National Laboratories nor the names of its
+//-      contributors may be used to endorse or promote products derived from
+//-      this software without specific prior written permission.
+//-
+//- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+//- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+//- ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+//- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+//- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+//- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+//- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+//- POSSIBILITY OF SUCH DAMAGE.
+//-
+//- ****************************************************************************
+
 package gov.sandia.geotess.extensions.rstt;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -20,9 +45,6 @@ import java.util.Scanner;
  * TT in seconds,
  * Slowness in sec/radian
  * Azimuth in radians.
-
- * @author jrhipp, sballar
- *
  */
 public class UncertaintyPIU extends Uncertainty
 {
@@ -53,7 +75,7 @@ public class UncertaintyPIU extends Uncertainty
 	/**
 	 * An array of doubles representing the angular distances (in degrees)
 	 * for which the model errors are defined.
-	 * 
+	 *
 	 * @return The array of distances
 	 */
 	public double[] getDistances()
@@ -65,7 +87,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * An array of doubles representing the depths (in km)
 	 * for which the model errors are defined. If empty there is no depth
 	 * dependence
-	 * 
+	 *
 	 * @return The array of depths
 	 */
 	public double[] getDepths()
@@ -78,7 +100,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * TT in seconds,
 	 * Slowness in sec/radian
 	 * Azimuth in radians.
-	 * 
+	 *
 	 * @return The array of model errors[nDepths][nDistances].
 	 */
 	public double[][] getValues()
@@ -98,7 +120,7 @@ public class UncertaintyPIU extends Uncertainty
 	/**
 	 * Parameterized Uncertainty Constructor used by SLBM.  phase is one of
 	 * "Pn", "Sn", "Pg", "Lg". attribute is one of "TT", "Sh", "Az"
-	 * 
+	 *
 	 * @param phase input phase number.
 	 * @param attribute input attribute number.
 	 */
@@ -111,7 +133,7 @@ public class UncertaintyPIU extends Uncertainty
 	/**
 	 * Parameterized Uncertainty Constructor used by SLBM.  phase is one of
 	 * "Pn", "Sn", "Pg", "Lg". attribute is one of "TT", "Sh", "Az"
-	 * 
+	 *
 	 * @param phase input phase string.
 	 * @param attribute input attribute string.
 	 */
@@ -124,7 +146,7 @@ public class UncertaintyPIU extends Uncertainty
 	/**
 	 * Standard constructor that reads the objects contents from the input file
 	 * path.
-	 * 
+	 *
 	 * @param fileName The file from which the object is read.
 	 * @param phase The objects phase number.
 	 * @param attribute The objects attribute number.
@@ -132,7 +154,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * @throws IOException
 	 */
 	public UncertaintyPIU(File fileName, String phase, String attribute,
-			boolean readBinary) throws IOException
+						  boolean readBinary) throws IOException
 	{
 		this(fileName, getPhase(phase), getAttribute(attribute), readBinary);
 	}
@@ -140,7 +162,7 @@ public class UncertaintyPIU extends Uncertainty
 	/**
 	 * Standard constructor that reads the objects contents from the input file
 	 * path.
-	 * 
+	 *
 	 * @param fileName The file from which the object is read.
 	 * @param phase The objects phase number.
 	 * @param attribute The objects attribute number.
@@ -148,7 +170,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * @throws IOException
 	 */
 	public UncertaintyPIU(File fileName, int phase, int attribute,
-			boolean readBinary) throws IOException
+						  boolean readBinary) throws IOException
 	{
 		super(phase);
 		attributeNum = attribute;
@@ -164,7 +186,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * @throws IOException
 	 */
 	public static UncertaintyPIU getUncertainty(Scanner input,
-			int phase, int attribute) throws IOException
+												int phase, int attribute) throws IOException
 	{
 		UncertaintyPIU uncertainty = new UncertaintyPIU(phase, attribute);
 		uncertainty.readFileAscii(input);
@@ -182,7 +204,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * @throws IOException
 	 */
 	public static UncertaintyPIU getUncertainty(DataInputStream input,
-			int phase, int attribute) throws IOException
+												int phase, int attribute) throws IOException
 	{
 		UncertaintyPIU uncertainty = new UncertaintyPIU(phase, attribute);
 		uncertainty.readFileBinary(input);
@@ -215,7 +237,7 @@ public class UncertaintyPIU extends Uncertainty
 	}
 
 	public double getUncertainty(double distance, double depth)
-	{ 
+	{
 		// Convert to degrees since model errors are defined in degrees.
 		double distanceDeg = Math.toDegrees(distance);
 
@@ -265,8 +287,8 @@ public class UncertaintyPIU extends Uncertainty
 		}
 	}
 
-	public double getVariance(double distance, double depth) 
-	{ 
+	public double getVariance(double distance, double depth)
+	{
 		// Convert to degrees since model errors are defined in degrees.
 		double distanceDeg = Math.toDegrees(distance);
 
@@ -350,7 +372,7 @@ public class UncertaintyPIU extends Uncertainty
 
 	/**
 	 * Sets this objects data arrays.
-	 * 
+	 *
 	 * @param distances Distance array [distance].
 	 * @param depths Depth array [depth].
 	 * @param values Error value array [depth][distance].
@@ -364,7 +386,7 @@ public class UncertaintyPIU extends Uncertainty
 
 	/**
 	 * Reads this SLBM uncertainty object from a file.
-	 * 
+	 *
 	 * @param fileName
 	 * @param readBinary reads binary or ascii format
 	 * @throws IOException
@@ -375,7 +397,7 @@ public class UncertaintyPIU extends Uncertainty
 		if (readBinary)
 			readFileBinary(fileName);
 		else
-			readFileAscii(fileName);		
+			readFileAscii(fileName);
 	}
 
 	/**
@@ -383,7 +405,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * File stores tt uncertainty in sec, slowness uncertainty in sec/degree,
 	 * and azimuth uncertainty in degrees.
 	 * Slowness and azimuth are converted to sec/radian and radians, respectively.
-	 * 
+	 *
 	 * @param fileName
 	 * @throws IOException
 	 */
@@ -392,7 +414,7 @@ public class UncertaintyPIU extends Uncertainty
 	{
 		Scanner input = new Scanner(fileName);
 		readFileAscii(input);
-		input.close();		
+		input.close();
 	}
 
 	/**
@@ -400,7 +422,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * File stores tt uncertainty in sec, slowness uncertainty in sec/degree,
 	 * and azimuth uncertainty in degrees.
 	 * Slowness and azimuth are converted to sec/radian and radians, respectively.
-	 * 
+	 *
 	 * @param fileName
 	 * @throws IOException
 	 */
@@ -410,7 +432,7 @@ public class UncertaintyPIU extends Uncertainty
 		DataInputStream input = new DataInputStream(new BufferedInputStream(
 				new FileInputStream(fileName)));
 		readFileBinary(input);
-		input.close();		
+		input.close();
 	}
 
 	/**
@@ -418,7 +440,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * File stores tt uncertainty in sec, slowness uncertainty in sec/degree,
 	 * and azimuth uncertainty in degrees.
 	 * Slowness and azimuth are converted to sec/radian and radians, respectively.
-	 * 
+	 *
 	 * @param input The input BufferedReader.
 	 * @throws IOException
 	 */
@@ -426,7 +448,7 @@ public class UncertaintyPIU extends Uncertainty
 		// The number of depths can be zero and still have uncertainty values as
 		// a function of distance.
 		int numdistances = input.nextInt();
-		int numdepths = input.nextInt(); 
+		int numdepths = input.nextInt();
 		input.nextLine();
 
 		if (numdistances > 0) {
@@ -440,8 +462,8 @@ public class UncertaintyPIU extends Uncertainty
 				for (int i = 0; i < numdepths; i++)
 					errDepths[i] = input.nextDouble();
 				input.nextLine();
-			} 
-			else 
+			}
+			else
 			{
 				errDepths = new double[0];
 				numdepths = 1;
@@ -474,7 +496,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * File stores tt uncertainty in sec, slowness uncertainty in sec/degree,
 	 * and azimuth uncertainty in degrees.
 	 * Slowness and azimuth are converted to sec/radian and radians, respectively.
-	 * 
+	 *
 	 * @param input
 	 * @throws IOException
 	 */
@@ -511,7 +533,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * File stores tt uncertainty in sec, slowness uncertainty in sec/degree,
 	 * and azimuth uncertainty in degrees.
 	 * Slowness and azimuth in memory have units of sec/radian and radians, respectively.
-	 * 
+	 *
 	 * @param fileName
 	 * @throws IOException
 	 */
@@ -529,7 +551,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * File stores tt uncertainty in sec, slowness uncertainty in sec/degree,
 	 * and azimuth uncertainty in degrees.
 	 * Slowness and azimuth in memory have units of sec/radian and radians, respectively.
-	 * 
+	 *
 	 * @param fileName
 	 * @throws IOException
 	 */
@@ -546,7 +568,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * File stores tt uncertainty in sec, slowness uncertainty in sec/degree,
 	 * and azimuth uncertainty in degrees.
 	 * Slowness and azimuth in memory have units of sec/radian and radians, respectively.
-	 * 
+	 *
 	 * @param output
 	 * @throws IOException
 	 */
@@ -579,7 +601,7 @@ public class UncertaintyPIU extends Uncertainty
 		// if 1:SH convert sec/radian to sec/degree
 		// if 0:TT no conversion
 		double convert = 1./attributeConversionFactor();
-		
+
 		String format = "%6.4f%n";
 
 		for (int i = 0; i < errVal.length; i++)
@@ -595,7 +617,7 @@ public class UncertaintyPIU extends Uncertainty
 	 * File stores tt uncertainty in sec, slowness uncertainty in sec/degree,
 	 * and azimuth uncertainty in degrees.
 	 * Slowness and azimuth in memory have units of sec/radian and radians, respectively.
-	 * 
+	 *
 	 * @param fileName
 	 * @throws IOException
 	 */
@@ -613,11 +635,11 @@ public class UncertaintyPIU extends Uncertainty
 	 * File stores tt uncertainty in sec, slowness uncertainty in sec/degree,
 	 * and azimuth uncertainty in degrees.
 	 * Slowness and azimuth in memory have units of sec/radian and radians, respectively.
-	 * 
+	 *
 	 * @param output
 	 * @throws IOException
 	 */
-	@Override	
+	@Override
 	protected void writeFileBinary(DataOutputStream output) throws IOException
 	{
 		// if attribute is 2:AZ, convert radians to degrees, 
@@ -641,17 +663,17 @@ public class UncertaintyPIU extends Uncertainty
 
 	/**
 	 * Conversion factors for tt, sh, az
-	 * 
+	 *
 	 * 	 0 = travel time = 1.0
 	 *   1 = slowness    = 57.29577951 (convert sec/degree to sec/radian)
 	 *   2 = azimuth     = 0.017453293 (convert degrees to radians)
-	 *  
+	 *
 	 * @return the conversion factor based on attribute number.
 	 */
 	private double attributeConversionFactor()
 	{
 		return (attributeNum == 2) ? Math.toRadians(1.0) :
-			(attributeNum == 1) ? Math.toDegrees(1.0) : 1.;
+				(attributeNum == 1) ? Math.toDegrees(1.0) : 1.;
 	}
 
 
@@ -729,15 +751,15 @@ public class UncertaintyPIU extends Uncertainty
 	{
 		StringBuffer buf = new StringBuffer("UncertaintyPIU Data:\n");
 		if (errDistances.length >0)
-			buf.append(String.format("Distances[%d] = %s%n", errDistances.length,  
+			buf.append(String.format("Distances[%d] = %s%n", errDistances.length,
 					Arrays.toString(errDistances)));
 		if (errDepths.length >0)
-			buf.append(String.format("Depths[%d] = %s%n", errDepths.length,  
+			buf.append(String.format("Depths[%d] = %s%n", errDepths.length,
 					Arrays.toString(errDepths)));
 		for (int i=0; i<errVal.length; ++i)
-			buf.append(String.format("Error Values[%d][%d] = %s%n", i, errVal[i].length,  
+			buf.append(String.format("Error Values[%d][%d] = %s%n", i, errVal[i].length,
 					Arrays.toString(errVal[i])));
 
-		return buf.toString();	
+		return buf.toString();
 	}
 }

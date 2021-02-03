@@ -35,20 +35,16 @@
 
 package gov.sandia.geotess;
 
-import static gov.sandia.gmp.util.globals.Globals.NL;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Scanner;
 
-//import ucar.ma2.IndexIterator;
+import static gov.sandia.gmp.util.globals.Globals.NL;
 
 /**
  * A Profile defined by a single radius and a single Data object.
- * 
- * @author Sandy Ballard
  */
 public class ProfileThin extends Profile
 {

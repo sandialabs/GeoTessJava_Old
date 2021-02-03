@@ -1,3 +1,38 @@
+//- ****************************************************************************
+//-
+//- Copyright 2009 Sandia Corporation. Under the terms of Contract
+//- DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+//- retains certain rights in this software.
+//-
+//- BSD Open Source License.
+//- All rights reserved.
+//-
+//- Redistribution and use in source and binary forms, with or without
+//- modification, are permitted provided that the following conditions are met:
+//-
+//-    * Redistributions of source code must retain the above copyright notice,
+//-      this list of conditions and the following disclaimer.
+//-    * Redistributions in binary form must reproduce the above copyright
+//-      notice, this list of conditions and the following disclaimer in the
+//-      documentation and/or other materials provided with the distribution.
+//-    * Neither the name of Sandia National Laboratories nor the names of its
+//-      contributors may be used to endorse or promote products derived from
+//-      this software without specific prior written permission.
+//-
+//- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+//- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+//- ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+//- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+//- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+//- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+//- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+//- POSSIBILITY OF SUCH DAMAGE.
+//-
+//- ****************************************************************************
+
 package gov.sandia.geotess.extensions.rstt;
 
 import java.io.BufferedReader;
@@ -7,9 +42,6 @@ import java.util.Scanner;
 /**
  * A simple, yet fast, ascii file scanner that handles empty lines and lines
  * with comments and lines with trailing comments.
- * 
- * @author jrhipp
- *
  */
 public class LineScanner {
 	/**
@@ -47,7 +79,7 @@ public class LineScanner {
 
 	/**
 	 * Initialize a new LineScanner with input.
-	 * 
+	 *
 	 * @param readerInput The input BufferedReader.
 	 */
 	public LineScanner(BufferedReader readerInput) {
@@ -56,7 +88,7 @@ public class LineScanner {
 
 	/**
 	 * Initialize a new LineScanner with input.
-	 * 
+	 *
 	 * @param readerInput The input BufferedReader.
 	 * @param cmntStr     The new comment string.
 	 */
@@ -67,7 +99,7 @@ public class LineScanner {
 
 	/**
 	 * Sets the comment string.
-	 * 
+	 *
 	 * @param cmntStr The new comment string.
 	 */
 	public static void setCommentString(String cmntStr) {
@@ -76,7 +108,7 @@ public class LineScanner {
 
 	/**
 	 * Returns true if this LineScanner has more data.
-	 * 
+	 *
 	 * @return True if this LineScanner has more data.
 	 * @throws IOException
 	 */
@@ -91,7 +123,7 @@ public class LineScanner {
 	 * Returns the next token in lineScanner as a double. This method checks the
 	 * current lineScanner instance for more input and creates a new instance with
 	 * the next set of input if the current scanner is empty.
-	 * 
+	 *
 	 * @return The next scanner token as a double.
 	 * @throws IOException
 	 */
@@ -104,7 +136,7 @@ public class LineScanner {
 	 * Returns the next token in lineScanner as a float. This method checks the
 	 * current lineScanner instance for more input and creates a new instance with
 	 * the next set of input if the current scanner is empty.
-	 * 
+	 *
 	 * @return The next scanner token as a float.
 	 * @throws IOException
 	 */
@@ -117,7 +149,7 @@ public class LineScanner {
 	 * Returns the next token in lineScanner as an long. This method checks the
 	 * current lineScanner instance for more input and creates a new instance with
 	 * the next set of input if the current scanner is empty.
-	 * 
+	 *
 	 * @return The next scanner token as an long.
 	 * @throws IOException
 	 */
@@ -130,7 +162,7 @@ public class LineScanner {
 	 * Returns the next token in lineScanner as an int. This method checks the
 	 * current lineScanner instance for more input and creates a new instance with
 	 * the next set of input if the current scanner is empty.
-	 * 
+	 *
 	 * @return The next scanner token as an int.
 	 * @throws IOException
 	 */
@@ -143,7 +175,7 @@ public class LineScanner {
 	 * Returns the next token in lineScanner as an short. This method checks the
 	 * current lineScanner instance for more input and creates a new instance with
 	 * the next set of input if the current scanner is empty.
-	 * 
+	 *
 	 * @return The next scanner token as an short.
 	 * @throws IOException
 	 */
@@ -156,7 +188,7 @@ public class LineScanner {
 	 * Returns the next token in lineScanner as an byte. This method checks the
 	 * current lineScanner instance for more input and creates a new instance with
 	 * the next set of input if the current scanner is empty.
-	 * 
+	 *
 	 * @return The next scanner token as an byte.
 	 * @throws IOException
 	 */
@@ -169,7 +201,7 @@ public class LineScanner {
 	 * Returns the next token in lineScanner as a boolean. This method checks the
 	 * current lineScanner instance for more input and creates a new instance with
 	 * the next set of input if the current scanner is empty.
-	 * 
+	 *
 	 * @return The next scanner token as a boolean.
 	 * @throws IOException
 	 */
@@ -182,7 +214,7 @@ public class LineScanner {
 	 * Returns the next token in lineScanner as a string. This method checks the
 	 * current lineScanner instance for more input and creates a new instance with
 	 * the next set of input if the current scanner is empty.
-	 * 
+	 *
 	 * @return The next scanner token as a string.
 	 * @throws IOException
 	 */
@@ -193,7 +225,7 @@ public class LineScanner {
 
 	/**
 	 * Returns the last line read from input into the current lineScanner.
-	 * 
+	 *
 	 * @return The last line read from input into the current lineScanner.
 	 * @throws IOException
 	 */
@@ -205,7 +237,7 @@ public class LineScanner {
 	 * Checks the current Scanner instance for more input availability. If the
 	 * Scanner is null (never created) or empty, a new Scanner is created and filled
 	 * with the next set of input.
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	private void checkScanner() throws IOException {
@@ -218,7 +250,7 @@ public class LineScanner {
 	 * returned Scanner has between scannerSize and builderSize characters. The
 	 * Scanner is formed from file lines with all comments, partial comments, and
 	 * empty lines removed.
-	 * 
+	 *
 	 * @return A new Scanner instance (lineScanner).
 	 * @throws IOException
 	 */

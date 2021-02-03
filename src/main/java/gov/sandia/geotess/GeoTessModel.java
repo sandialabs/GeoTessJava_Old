@@ -35,29 +35,10 @@
 
 package gov.sandia.geotess;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Scanner;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import gov.sandia.geotess.extensions.amplitude.GeoTessModelAmplitude;
 import gov.sandia.geotess.extensions.libcorr3d.LibCorr3DModel;
+import gov.sandia.geotess.extensions.rstt.GeoTessModelSLBM;
+import gov.sandia.geotess.extensions.rstt.GeoTessModelSLBMPDU;
 import gov.sandia.geotess.extensions.siteterms.GeoTessModelSiteData;
 import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
 import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
@@ -71,6 +52,14 @@ import gov.sandia.gmp.util.numerical.polygon.GreatCircle;
 import gov.sandia.gmp.util.numerical.polygon.Polygon;
 import gov.sandia.gmp.util.numerical.vector.EarthShape;
 import gov.sandia.gmp.util.numerical.vector.Vector3D;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Scanner;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * <b>GeoTessModel</b> manages the <i>grid</i> and <i>data</i> that comprise a
@@ -130,9 +119,6 @@ import gov.sandia.gmp.util.numerical.vector.Vector3D;
  * among all the threads in a multi-threaded application and each thread will
  * have it's own instance of a GeoTessPosition object that references the common
  * GeoTessModel.
- * 
- * @author Sandy Ballard
- * 
  */
 public class GeoTessModel
 {
@@ -1452,6 +1438,8 @@ public class GeoTessModel
 	 */
 	public boolean isPointMapPopulated()
 	{
+		if (pointMap == null)
+			getPointMap();
 		return pointMap.isPopulated();
 	}
 
@@ -1463,7 +1451,10 @@ public class GeoTessModel
 	{
 		synchronized(this)
 		{
-			pointMap.setActiveRegion();
+			if (pointMap == null)
+				getPointMap();
+			else
+				pointMap.setActiveRegion();
 		}
 	}
 
@@ -1476,13 +1467,11 @@ public class GeoTessModel
 	 */
 	public void setActiveRegion(Polygon polygon)
 	{
-
 		synchronized(this)
 		{
-			if (polygon == null)
-				getPointMap().setActiveRegion();
-			else
-				getPointMap().setActiveRegion(polygon);
+			if (pointMap == null) 
+				pointMap = new PointMap(this);
+			pointMap.setActiveRegion(polygon);
 		}
 	}
 
@@ -1509,6 +1498,8 @@ public class GeoTessModel
 	{
 		synchronized(this)
 		{
+			if (pointMap == null) 
+				pointMap = new PointMap(this);
 			pointMap.setActiveRegion(polygonFile);
 		}
 	}
@@ -3704,12 +3695,11 @@ public class GeoTessModel
 		if (className.equalsIgnoreCase("GeoTessModelAmplitude"))
 			return new GeoTessModelAmplitude(input, pathToGridDir);
 
-	    // TODO: restore these lines when extension rstt becomes available.
-//		if (className.equalsIgnoreCase("GeoTessModelSLBM") || className.equalsIgnoreCase("SLBM"))
-//			return new GeoTessModelSLBM(input, pathToGridDir);
-//
-//		if (className.equalsIgnoreCase("GeoTessModelSLBMPDU"))
-//			return new GeoTessModelSLBMPDU(input, pathToGridDir);
+		if (className.equalsIgnoreCase("GeoTessModelSLBM") || className.equalsIgnoreCase("SLBM"))
+			return new GeoTessModelSLBM(input, pathToGridDir);
+
+		if (className.equalsIgnoreCase("GeoTessModelSLBMPDU"))
+			return new GeoTessModelSLBMPDU(input, pathToGridDir);
 
 		return new GeoTessModel(input, pathToGridDir);
 	}
@@ -3761,12 +3751,11 @@ public class GeoTessModel
 		if (className.equalsIgnoreCase("GeoTessModelAmplitude"))
 			return new GeoTessModelAmplitude(grid, metaData);
 
-	    // TODO: restore these lines when extension rstt becomes available.
-//		if (className.equalsIgnoreCase("GeoTessModelSLBM"))
-//			return new GeoTessModelSLBM(grid, metaData);
-//
-//		if (className.equalsIgnoreCase("GeoTessModelSLBMPDU"))
-//			return new GeoTessModelSLBMPDU(grid, metaData);
+		if (className.equalsIgnoreCase("GeoTessModelSLBM"))
+			return new GeoTessModelSLBM(grid, metaData);
+
+		if (className.equalsIgnoreCase("GeoTessModelSLBMPDU"))
+			return new GeoTessModelSLBMPDU(grid, metaData);
 
 		return new GeoTessModel(grid, metaData);
 

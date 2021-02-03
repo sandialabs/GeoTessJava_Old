@@ -1,28 +1,50 @@
+//- ****************************************************************************
+//-
+//- Copyright 2009 Sandia Corporation. Under the terms of Contract
+//- DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+//- retains certain rights in this software.
+//-
+//- BSD Open Source License.
+//- All rights reserved.
+//-
+//- Redistribution and use in source and binary forms, with or without
+//- modification, are permitted provided that the following conditions are met:
+//-
+//-    * Redistributions of source code must retain the above copyright notice,
+//-      this list of conditions and the following disclaimer.
+//-    * Redistributions in binary form must reproduce the above copyright
+//-      notice, this list of conditions and the following disclaimer in the
+//-      documentation and/or other materials provided with the distribution.
+//-    * Neither the name of Sandia National Laboratories nor the names of its
+//-      contributors may be used to endorse or promote products derived from
+//-      this software without specific prior written permission.
+//-
+//- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+//- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+//- ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+//- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+//- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+//- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+//- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+//- POSSIBILITY OF SUCH DAMAGE.
+//-
+//- ****************************************************************************
+
 package gov.sandia.geotess.extensions.libcorr3d;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.Writer;
+import gov.sandia.geotess.*;
+import gov.sandia.gmp.util.globals.DataType;
+import gov.sandia.gmp.util.globals.GMTFormat;
+import gov.sandia.gmp.util.numerical.vector.EarthShape;
+
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
-
-import gov.sandia.geotess.Data;
-import gov.sandia.geotess.GeoTessException;
-import gov.sandia.geotess.GeoTessGrid;
-import gov.sandia.geotess.GeoTessMetaData;
-import gov.sandia.geotess.GeoTessModel;
-import gov.sandia.geotess.GeoTessModelUtils;
-import gov.sandia.geotess.GeoTessUtils;
-import gov.sandia.geotess.Profile;
-import gov.sandia.gmp.util.globals.DataType;
-import gov.sandia.gmp.util.globals.GMTFormat;
-import gov.sandia.gmp.util.numerical.vector.EarthShape;
 
 /**
  * This is a LibCorr3D extension of the GeoTessModel for use by LibCorr3D.
@@ -257,6 +279,9 @@ public class LibCorr3DModel extends GeoTessModel
 		}
 		catch (Exception e1)
 		{
+			System.err.println(e1.toString());
+			System.err.println("Attempting to read as a LibCorr2DModel");
+
 			// the input data file is not in GeoTess format.  Maybe
 			// it is a LibCorr2D file (kbcit format).  Try reading that format.
 			try
@@ -292,7 +317,7 @@ public class LibCorr3DModel extends GeoTessModel
 			//
 			// this is a regular geotess file, not a libcorr3d file.  
 			// We might be able to extract required information from the metadata.
-			// This capability was added by sballar 1/23/2017
+			// This capability was added 1/23/2017
 			formatVersion = -1;
 			
 			String sta = null;
@@ -364,9 +389,9 @@ public class LibCorr3DModel extends GeoTessModel
 
 		// OK, this is a LibCorr3DModel
 		formatVersion = 0;
-		// if firstWord is 'LibCorr3DModel', then also read the version number
-		if (firstWord.equals(this.getClass().getSimpleName()))
-			formatVersion = input.readInt(); 
+		// if firstWord starts with 'LibCorr3DModel', then also read the version number
+		if (firstWord.startsWith(this.getClass().getSimpleName()))
+			formatVersion = input.readInt();
 		
 		if (formatVersion >= 2)
 		{
@@ -1051,8 +1076,8 @@ public class LibCorr3DModel extends GeoTessModel
 
 	/**
 	 * Try to load the model in LibCorr2D (kbcit) format.
-	 * @param inputStream
-	 * @param inputDirectory
+	 * @param inputFile
+	 * @param relGridFilePath
 	 * @param relGridFilePath
 	 * @throws Exception 
 	 */
@@ -1121,14 +1146,14 @@ public class LibCorr3DModel extends GeoTessModel
 		{
 			getMetaData().setAttributes("SLOWNESS_PATH_CORRECTION; SLOWNESS_MODEL_UNCERTAINTY", "seconds/radian; seconds/radian");
 			parameters = "SLOWNESS_PATH_CORRECTION (seconds/radian), SLOWNESS_MODEL_UNCERTAINTY (seconds/radian)";
-			// sballar; 8/2/2017; while at aftac, i verified that libcorr2d slowness surfaces are in units of
+			// 8/2/2017; i verified that libcorr2d slowness surfaces are in units of
 			// seconds/radian. No unit conversion necessary.
 		}
 		else if (attributeType.equals("az"))
 		{
 			getMetaData().setAttributes("AZIMUTH_PATH_CORRECTION; AZIMUTH_MODEL_UNCERTAINTY", "radians; radians");
 			parameters = "AZIMUTH_PATH_CORRECTION (radians), AZIMUTH_MODEL_UNCERTAINTY (radians)";
-			// sballar; 8/2/2017; while at aftac, i verified that libcorr2d azimuth surfaces are in units of
+			// 8/2/2017; i verified that libcorr2d azimuth surfaces are in units of
 			// radians.  No unit conversion necessary.
 		}
 		else 
@@ -1447,8 +1472,6 @@ public class LibCorr3DModel extends GeoTessModel
 	 * n-byte boundary.  Methods readInt, readFloat, readDouble and
 	 * readArray align the file pointer on the appropriate byte boundary
 	 * before reading data from the input stream.
-	 * 
-	 * @author sballar
 	 */
 	class CustomStream
 	{

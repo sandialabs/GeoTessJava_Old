@@ -35,19 +35,15 @@
 
 package gov.sandia.geotess;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Scanner;
-
 import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
 import gov.sandia.gmp.util.globals.InterpolatorType;
 import gov.sandia.gmp.util.numerical.polygon.Horizon;
 import gov.sandia.gmp.util.numerical.polygon.Polygon;
 import gov.sandia.gmp.util.numerical.polygon.Polygon3D;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * PointMap facilitates access to information in the model by providing a map
@@ -83,9 +79,6 @@ import gov.sandia.gmp.util.numerical.polygon.Polygon3D;
  * <li>npoint: n
  * <li>surface: 1
  * </ul>
- * 
- * @author sballar
- * 
  */
 public class PointMap
 {

@@ -12,36 +12,18 @@
 
 package gov.sandia.geotess.extensions.amplitude;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Scanner;
-import java.util.Set;
-
-import gov.sandia.geotess.GeoTessException;
-import gov.sandia.geotess.GeoTessGrid;
-import gov.sandia.geotess.GeoTessMetaData;
-import gov.sandia.geotess.GeoTessModel;
-import gov.sandia.geotess.GeoTessUtils;
-import gov.sandia.geotess.PointMap;
+import gov.sandia.geotess.*;
 import gov.sandia.gmp.util.containers.hash.maps.HashMapIntegerDouble;
 import gov.sandia.gmp.util.containers.hash.maps.HashMapIntegerDouble.Iterator;
 import gov.sandia.gmp.util.globals.InterpolatorType;
 import gov.sandia.gmp.util.numerical.polygon.GreatCircle;
 
+import java.io.*;
+import java.util.*;
+import java.util.Map.Entry;
+
 /**
  * This class extends GeoTessModel 
- * @author sballar
- *
  */
 public class GeoTessModelAmplitude extends GeoTessModel 
 {
@@ -280,7 +262,7 @@ public class GeoTessModelAmplitude extends GeoTessModel
 	 * Get the current version number
 	 * @return the current version number
 	 */
-	public static String getVersion() { return "1.0.0"; }
+	public static String getVersion() { return "1.1.1"; }
 
 	/**
 	 * Retrieve the value of effective Q for the specified frequency band,

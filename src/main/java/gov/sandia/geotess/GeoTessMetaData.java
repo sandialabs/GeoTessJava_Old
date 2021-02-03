@@ -35,30 +35,21 @@
 
 package gov.sandia.geotess;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.Writer;
+import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
+import gov.sandia.gmp.util.globals.DataType;
+import gov.sandia.gmp.util.numerical.vector.EarthShape;
+
+import java.io.*;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.Scanner;
 
-import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
-import gov.sandia.gmp.util.globals.DataType;
-import gov.sandia.gmp.util.numerical.vector.EarthShape;
-
 /**
  * GeoTessMetaData stores basic information about a GeoTessModel. Each
  * GeoTessModel has a single instance of MetaData that it passes around to
  * wherever the information is needed.
- * 
- * @author Sandy Ballard
- * 
  */
 public class GeoTessMetaData
 {

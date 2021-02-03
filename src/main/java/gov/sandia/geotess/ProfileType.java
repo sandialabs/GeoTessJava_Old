@@ -36,18 +36,16 @@
 package gov.sandia.geotess;
 
 /**
- * There are 5 types of profiles:
+ * There are 6 types of profiles:
  * <ol start="0">
  * <li>EMPTY : two radii and no Data
  * <li>THIN: one radius and one Data
  * <li>CONSTANT: two radii and one Data
  * <li>NPOINT: two or more radii and an equal number of Data
  * <li>SURFACE: no radii and one Data
+ * <li>SURFACE_EMPTY: no radii and no Data
  * </ol>
  * <p>
- * 
- * @author Sandy Ballard Ballard
- * 
  */
 public enum ProfileType
 {

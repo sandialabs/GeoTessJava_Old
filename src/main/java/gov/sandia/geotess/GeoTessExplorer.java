@@ -35,21 +35,10 @@
 
 package gov.sandia.geotess;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Scanner;
-import java.util.TreeMap;
-
 import gov.sandia.geotess.extensions.libcorr3d.LibCorr3DModel;
+import gov.sandia.geotess.extensions.rstt.GeoTessModelSLBM;
+import gov.sandia.geotess.extensions.rstt.Uncertainty;
+import gov.sandia.geotess.extensions.rstt.UncertaintyPDU;
 import gov.sandia.geotess.extensions.siteterms.GeoTessModelSiteData;
 import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
 import gov.sandia.gmp.util.globals.DataType;
@@ -58,6 +47,11 @@ import gov.sandia.gmp.util.numerical.polygon.GreatCircle;
 import gov.sandia.gmp.util.numerical.polygon.Polygon;
 import gov.sandia.gmp.util.numerical.vector.EarthShape;
 import gov.sandia.gmp.util.numerical.vector.VectorUnit;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * A command line driven set of utilities that can be used to extract maps,
@@ -159,6 +153,7 @@ public class GeoTessExplorer
 	 * <ul>
 	 * <li>version              -- output the GeoTess version number
 	 * <li>toString             -- print summary information about a model
+	 * <li>updateModelDescription -- update the description information for a model
 	 * <li>statistics           -- print summary statistics about the data in a model
 	 * <li>extractGrid          -- load a model or grid and write its grid to stdout, vtk, kml, ascii or binary file
 	 * <li>resample             -- resample a model onto a new grid
@@ -250,6 +245,8 @@ public class GeoTessExplorer
 	{
 		try
 		{
+//			GeoTessModelSLBM test = new GeoTessModelSLBM("C:\\TomographyTransitions2019\\israel_resampled.geotess");
+//			System.out.println(test.toString());
 			new GeoTessExplorer().run(args);
 		}
 		catch (Exception e)
@@ -264,6 +261,7 @@ public class GeoTessExplorer
 		functionMap = new LinkedHashMap<String, String>();
 		functionMap.put("version", "output the GeoTess version number");
 		functionMap.put("toString", "print summary information about a model");
+		functionMap.put("updateModelDescription", "update the description information for a model");
 		functionMap.put("statistics", "print summary statistics about the data in a model");
 		functionMap.put("getClassName", "discover the class name of a specified model");
 		functionMap.put("equal", "given two GeoTessModels test that all radii and attribute values of all nodes are ==.  Metadata can differ.");
@@ -311,10 +309,9 @@ public class GeoTessExplorer
 		functionMap.put("extractSiteTerms", "extract site terms from a GeoTessModelSiteData and print to screen");
 		functionMap.put("replaceSiteTerms", "replace site terms in a GeoTessModelSiteData with values loaded from a file");
 
-		// TODO: restore these lines when extension rstt becomes available.
-		//    functionMap.put("RSTT:", "");
-		//    functionMap.put("extractPathDependentUncertaintyRSTT", "extract all the path dependent uncertainty information from a GeoTessModelSLBM");
-		//    functionMap.put("replacePathDependentUncertaintyRSTT", "replace all the path dependent uncertainty information in a GeoTessModelSLBM");
+		functionMap.put("RSTT:", "");
+		functionMap.put("extractPathDependentUncertaintyRSTT", "extract all the path dependent uncertainty information from a GeoTessModelSLBM");
+		functionMap.put("replacePathDependentUncertaintyRSTT", "replace all the path dependent uncertainty information in a GeoTessModelSLBM");
 
 	}
 
@@ -337,6 +334,8 @@ public class GeoTessExplorer
 			System.out.println("GeoTessJava."+GeoTessUtils.getVersion());
 		else if (cmd.equalsIgnoreCase("toString"))
 			toString(args);
+		else if (cmd.equalsIgnoreCase("updateModelDescription"))
+			updateModelDescription(args);
 		else if (cmd.equalsIgnoreCase("statistics"))
 			statistics(args);
 		else if (cmd.equalsIgnoreCase("extractActiveNodes"))
@@ -429,11 +428,10 @@ public class GeoTessExplorer
 			replaceSiteTerms(args);
 		else if (cmd.equalsIgnoreCase("getClassName"))
 			getClassName(args);
-		// TODO: restore these lines when extension rstt becomes available.
-		//    else if (cmd.equalsIgnoreCase("extractPathDependentUncertaintyRSTT"))
-		//    	extractPathDependentUncertaintyRSTT(args);
-		//    else if (cmd.equalsIgnoreCase("replacePathDependentUncertaintyRSTT"))
-		//    	replacePathDependentUncertaintyRSTT(args);
+		else if (cmd.equalsIgnoreCase("extractPathDependentUncertaintyRSTT"))
+			extractPathDependentUncertaintyRSTT(args);
+		else if (cmd.equalsIgnoreCase("replacePathDependentUncertaintyRSTT"))
+			replacePathDependentUncertaintyRSTT(args);
 		else
 			throw new Exception(String.format(
 					"%n%s is not a recognized command%n"
@@ -463,117 +461,116 @@ public class GeoTessExplorer
 
 	}
 
-	// TODO: restore these lines when extension rstt becomes available.
-	//  protected void replacePathDependentUncertaintyRSTT(String[] args)  throws Exception {
-	//	    int nmin = 5;
-	//	    if (args.length != nmin)
-	//	    {
-	//	      System.out .println(
-	//	          String.format("%n%nMust supply at least %d arguments:%n"
-	//	              + "  1 -- replacePathDependentUncertaintyRSTT%n"
-	//	              + "  2 -- path to the GeoTessModelSLBM input file%n"
-	//	              + "  3 -- relative path to grid directory (not used if grid stored in model file)%n"
-	//	              + "  4 -- path to file with new PDU info.  If not null must contain '<phase>' which will be replaced with phase name%n"
-	//	              + "  5 -- path of the file to receive the GeoTessModelSLBM model%n",
-	//	              
-	//	              nmin));
-	//	      System.exit(0);
-	//	    }
-	//	    
-	//	    int a = 0;
-	//	    File inputFile = new File(args[++a]);
-	//	    
-	//	    String pathToGridDir = args[++a];
-	//	    
-	//	    String pduFileName = args[++a];
-	//
-	//	    File outputFile = new File(args[++a]);
-	//	    
-	//	    if (!pduFileName.equalsIgnoreCase("null") && !pduFileName.contains("<phase>"))
-	//	    	throw new Exception("Path to file with new PDU info does not contain substring '<phase>'");
-	//
-	//	    System.out.printf("Loading GeoTessSLBM file %s (%1.3f MB)%n",
-	//	    		inputFile.getCanonicalPath(), inputFile.length()/(1024.*1024.));
-	//	    GeoTessModelSLBM model = new GeoTessModelSLBM(inputFile, pathToGridDir);
-	//	    
-	//	    if (pduFileName.equalsIgnoreCase("null"))
-	//	    	model.clearPathDependentUncertainty();
-	//	    else
-	//	    	for (int phaseIndex=0; phaseIndex<4; ++phaseIndex)
-	//	    	{
-	//	    		String phase = Uncertainty.getPhase(phaseIndex);
-	//	    		File pduFile = new File(pduFileName.replace("<phase>", phase));
-	//	    		System.out.printf("Loading UncertaintyPDU file %s (%1.3f MB)%n",
-	//	    				pduFile.getCanonicalPath(), pduFile.length()/(1024.*1024.));
-	//	    		UncertaintyPDU pdu = new UncertaintyPDU(pduFile);
-	//	    		if (!pdu.getPhaseStr().equals(phase))
-	//	    			throw new Exception(String.format("Phase in pduFile=%s is not equal to phase %s%n",
-	//	    					pdu.getPhaseStr(), phase));
-	//	    		if (!pdu.getGridId().equals(model.getGrid().getGridID()))
-	//	    			throw new Exception(String.format("GridID in pduFile=%s is not equal to gridID in input model %s%n",
-	//	    					pdu.getGridId(), model.getGrid().getGridID()));
-	//	    		model.setPathDependentUncertainty(pdu, phaseIndex);
-	//	    	}
-	//	    
-	//	    model.writeModel(outputFile);
-	//	    System.out.printf("Wrote GeoTessSLBM file %s (%1.3f MB)%n",
-	//	    		outputFile.getCanonicalPath(), outputFile.length()/(1024.*1024.));
-	//	    
-	//	  }
-	//
-	//  protected void extractPathDependentUncertaintyRSTT(String[] args)  throws Exception {
-	//	    int nmin = 5;
-	//	    if (args.length != nmin)
-	//	    {
-	//	      System.out .println(
-	//	          String.format("%n%nMust supply at least %d arguments:%n"
-	//	              + "  1 -- extractPathDependentUncertaintyRSTT%n"
-	//	              + "  2 -- path to the GeoTessModelSLBM input file%n"
-	//	              + "  3 -- relative path to grid directory (not used if grid stored in model file)%n"
-	//	              + "  4 -- names of files to receive PDU files.  Must contain '<phase>' which will be replaced with phase name.%n"
-	//	              + "  5 -- format = one of [ binary | ascii | geotess ]%n",
-	//	              
-	//	              nmin));
-	//	      System.exit(0);
-	//	    }
-	//
-	//	    int a = 0;
-	//	    File inputFile = new File(args[++a]);
-	//	    String pathToGridDir = args[++a];
-	//	    
-	//	    String pduFileName = args[++a];
-	//	    
-	//	    String format = args[++a].toLowerCase();
-	//	    
-	//	    if (!pduFileName.contains("<phase>"))
-	//	    	throw new Exception("PDU file name must contain substring '<phase>'");
-	//	    
-	//	    if (!format.equalsIgnoreCase("binary") && !format.equalsIgnoreCase("ascii") 
-	//	    		&& !format.equalsIgnoreCase("geotess"))
-	//	    	throw new Exception (String.format("format = %s must be one of [ binary | ascii | geotess ]", format));
-	//
-	//	    System.out.printf("Reading input file %s (%s)%n", inputFile.getCanonicalFile(), 
-	//	    		getFileSize(inputFile));
-	//	    GeoTessModelSLBM model = new GeoTessModelSLBM(inputFile, pathToGridDir);
-	//	    
-	//	    for (int phaseIndex=0; phaseIndex<4; ++phaseIndex)
-	//	    {
-	//	    	UncertaintyPDU pdu = model.getPathDependentUncertainty(phaseIndex);
-	//	    	String phase = Uncertainty.getPhase(phaseIndex);
-	//	    	if (!pdu.getPhaseStr().equals(phase))
-	//	    		throw new Exception(String.format("Phase in pduFile = %s is not equal to phase %s%n",
-	//	    				pdu.getPhaseStr(), phase));
-	//	    	File pduFile = new File(pduFileName.replace("<phase>", phase));
-	//	    	System.out.printf("Writing file %s ", pduFile.getAbsoluteFile());
-	//	    	if(format.equals("binary"))
-	//	    		pdu.writeFileBinary(pduFile);
-	//	    	if(format.equals("ascii"))
-	//	    		pdu.writeFileAscii(pduFile);
-	//	    	if(format.equals("geotess"))
-	//	    		pdu.writeFileGeoTess(pduFile);
-	//	    	System.out.printf("%s%n", getFileSize(pduFile));
-	//	    }
-	//	  }
+	protected void replacePathDependentUncertaintyRSTT(String[] args)  throws Exception {
+		int nmin = 5;
+		if (args.length != nmin)
+		{
+			System.out .println(
+					String.format("%n%nMust supply at least %d arguments:%n"
+							+ "  1 -- replacePathDependentUncertaintyRSTT%n"
+							+ "  2 -- path to the GeoTessModelSLBM input file%n"
+							+ "  3 -- relative path to grid directory (not used if grid stored in model file)%n"
+							+ "  4 -- path to file with new PDU info.  If not null must contain '<phase>' which will be replaced with phase name%n"
+							+ "  5 -- path of the file to receive the GeoTessModelSLBM model%n",
+
+							nmin));
+			System.exit(0);
+		}
+
+		int a = 0;
+		File inputFile = new File(args[++a]);
+
+		String pathToGridDir = args[++a];
+
+		String pduFileName = args[++a];
+
+		File outputFile = new File(args[++a]);
+
+		if (!pduFileName.equalsIgnoreCase("null") && !pduFileName.contains("<phase>"))
+			throw new Exception("Path to file with new PDU info does not contain substring '<phase>'");
+
+		System.out.printf("Loading GeoTessSLBM file %s (%1.3f MB)%n",
+				inputFile.getCanonicalPath(), inputFile.length()/(1024.*1024.));
+		GeoTessModelSLBM model = new GeoTessModelSLBM(inputFile, pathToGridDir);
+
+		if (pduFileName.equalsIgnoreCase("null"))
+			model.clearPathDependentUncertainty();
+		else
+			for (int phaseIndex=0; phaseIndex<4; ++phaseIndex)
+			{
+				String phase = Uncertainty.getPhase(phaseIndex);
+				File pduFile = new File(pduFileName.replace("<phase>", phase));
+				System.out.printf("Loading UncertaintyPDU file %s (%1.3f MB)%n",
+						pduFile.getCanonicalPath(), pduFile.length()/(1024.*1024.));
+				UncertaintyPDU pdu = new UncertaintyPDU(pduFile);
+				if (!pdu.getPhaseStr().equals(phase))
+					throw new Exception(String.format("Phase in pduFile=%s is not equal to phase %s%n",
+							pdu.getPhaseStr(), phase));
+				if (!pdu.getGridId().equals(model.getGrid().getGridID()))
+					throw new Exception(String.format("GridID in pduFile=%s is not equal to gridID in input model %s%n",
+							pdu.getGridId(), model.getGrid().getGridID()));
+				model.setPathDependentUncertainty(pdu, phaseIndex);
+			}
+
+		model.writeModel(outputFile);
+		System.out.printf("Wrote GeoTessSLBM file %s (%1.3f MB)%n",
+				outputFile.getCanonicalPath(), outputFile.length()/(1024.*1024.));
+
+	}
+
+	protected void extractPathDependentUncertaintyRSTT(String[] args)  throws Exception {
+		int nmin = 5;
+		if (args.length != nmin)
+		{
+			System.out .println(
+					String.format("%n%nMust supply at least %d arguments:%n"
+							+ "  1 -- extractPathDependentUncertaintyRSTT%n"
+							+ "  2 -- path to the GeoTessModelSLBM input file%n"
+							+ "  3 -- relative path to grid directory (not used if grid stored in model file)%n"
+							+ "  4 -- names of files to receive PDU files.  Must contain '<phase>' which will be replaced with phase name.%n"
+							+ "  5 -- format = one of [ binary | ascii | geotess ]%n",
+
+							nmin));
+			System.exit(0);
+		}
+
+		int a = 0;
+		File inputFile = new File(args[++a]);
+		String pathToGridDir = args[++a];
+
+		String pduFileName = args[++a];
+
+		String format = args[++a].toLowerCase();
+
+		if (!pduFileName.contains("<phase>"))
+			throw new Exception("PDU file name must contain substring '<phase>'");
+
+		if (!format.equalsIgnoreCase("binary") && !format.equalsIgnoreCase("ascii") 
+				&& !format.equalsIgnoreCase("geotess"))
+			throw new Exception (String.format("format = %s must be one of [ binary | ascii | geotess ]", format));
+
+		System.out.printf("Reading input file %s (%s)%n", inputFile.getCanonicalFile(), 
+				getFileSize(inputFile));
+		GeoTessModelSLBM model = new GeoTessModelSLBM(inputFile, pathToGridDir);
+
+		for (int phaseIndex=0; phaseIndex<4; ++phaseIndex)
+		{
+			UncertaintyPDU pdu = model.getPathDependentUncertainty(phaseIndex);
+			String phase = Uncertainty.getPhase(phaseIndex);
+			if (!pdu.getPhaseStr().equals(phase))
+				throw new Exception(String.format("Phase in pduFile = %s is not equal to phase %s%n",
+						pdu.getPhaseStr(), phase));
+			File pduFile = new File(pduFileName.replace("<phase>", phase));
+			System.out.printf("Writing file %s ", pduFile.getAbsoluteFile());
+			if(format.equals("binary"))
+				pdu.writeFileBinary(pduFile);
+			if(format.equals("ascii"))
+				pdu.writeFileAscii(pduFile);
+			if(format.equals("geotess"))
+				pdu.writeFileGeoTess(pduFile);
+			System.out.printf("%s%n", getFileSize(pduFile));
+		}
+	}
 
 	public void getPhase(String[] args) throws Exception {
 		int nmin = 2;
@@ -1067,7 +1064,7 @@ public class GeoTessExplorer
 		File gridFile = new File(args[arg++]);
 		File outputFile = new File(args[arg++]);
 
-		System.out.printf("Loading model %s (%s)%n", 
+		System.out.printf("Loading model %s (%s)%n",
 				inputFile.getAbsoluteFile(), getFileSize(inputFile));
 		GeoTessModel model = GeoTessModel.getGeoTessModel(inputFile, pathToGridDir);
 
@@ -1086,6 +1083,8 @@ public class GeoTessExplorer
 		System.out.printf("Resampling model from old grid with %d vertices to new grid with %d vertices (%1.2f%%)%n",
 				model.getNVertices(), newGrid.getNVertices(), 100.*newGrid.getNVertices()/model.getNVertices());
 
+		String className = model.getMetaData().getModelClassName();
+		System.out.println(className);
 		GeoTessModel newModel = model.resample(newGrid);
 
 		System.out.printf("Writing output model %s ", outputFile.getAbsolutePath());
@@ -2927,6 +2926,46 @@ public class GeoTessExplorer
 			}
 	}
 
+	private static void checkUpdateModelDescriptionArgs(String[] args) {
+		int nmin = 4;
+		if (args.length >= nmin) return;
+
+		System.out .println(
+				String.format("%n%nMust supply %d arguments:%n"
+						+ "  1  --  updateModelDescription%n"
+						+ "  2  --  input model file name%n"
+						+ "  3  --  output model file name%n"
+						+ "  4  --  updated description%n", nmin));
+		System.exit(0);
+	}
+
+	/**
+	 * Updates the description field of a GeoTessModel.
+	 *
+	 * @param args
+	 *            <ol>
+	 *            <li>updateModelDescription
+	 *            <li>input model file name
+	 *            <li>output model file name
+	 *            <li>updated description.
+	 *            </ol>
+	 * @throws IOException
+	 */
+	public static void updateModelDescription(String[] args) throws IOException {
+		checkUpdateModelDescriptionArgs(args);
+
+		GeoTessModel model = new GeoTessModel(new File(args[1]));
+		String outputFilename = args[2];
+
+		String description = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
+		model.getMetaData().setDescription(description);
+
+		model.writeModel(outputFilename);
+
+		System.out.println("Wrote model to " + outputFilename);
+		System.out.println(model.toString());
+	}
+
 	private static void checkLayerAverageArgs(String[] args) {
 		int nmin = 4;
 		if (args.length >= nmin) return;
@@ -3214,33 +3253,6 @@ public class GeoTessExplorer
 
 		// output new model
 		model.writeModel(new File(args[2]));
-	}
-
-	/**
-	 * Figure out to write the grid into the same file as the model or into a separate file.
-	 * @param outputModel the model to write
-	 * @param outputModelFile the File to which to write the model.  If null, overwrite the inputModel
-	 * @param inputModel the inputModel
-	 * @param outputGridFile if null and inputModel's grid was written internally, then write the grid to the
-	 * outputModel internally.  If null and the inputModel's grid was in a separate file, write the outputMode
-	 * without the grid, specifying the same grid file. If outputGridFile is "*", write the grid internally
-	 * to the outputFile.  If outputGridFile is specified, do not write the grid internally and use
-	 * just the name part of outputGridFile to refer to the grid.
-	 * @throws IOException
-	 */
-	private void writeModel(GeoTessModel outputModel, File outputModelFile,
-			GeoTessModel inputModel, String outputGridFile) throws IOException
-	{
-		if (outputGridFile == null || outputGridFile.trim().length() == 0)
-			outputGridFile = inputModel.getMetaData().getGridInputFileName();
-
-		if (outputModelFile != null)
-			outputModel.writeModel(outputModelFile, outputGridFile);
-		else if (inputModel.getCurrentModelFileName() != null)
-			outputModel.writeModel(inputModel.getCurrentModelFileName(), outputGridFile);
-		else
-			throw new IOException("Can't write outputModel because outputModelFile is null "
-					+ "and inputModel.getCurrentModelFileName() is also null");
 	}
 
 	/**

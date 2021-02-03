@@ -58,9 +58,6 @@ import gov.sandia.gmp.util.numerical.vector.VectorUnit;
  * <li>interpolate a value from the grid and print the result to the screen.
  * </ul>
  * <p>
- * 
- * @author sballar
- * 
  */
 public class PopulateModel2D
 {
@@ -101,9 +98,7 @@ public class PopulateModel2D
 					.format("Simple example of a GeoTess model,%n"
 							+ "storing the distance from station ANMO %n"
 							+ "near Albuquerque, New Mexico, USA%n"
-							+ "Lat, lon = 34.9462, -106.4567 degrees.%n"
-							+ "author: Sandy Ballard%n"
-							+ "contact: sballar@sandia.gov%n"));
+							+ "Lat, lon = 34.9462, -106.4567 degrees."));
 
 			// Specify a list of layer names. A model could have many layers,
 			// e.g., ("core", "mantle", "crust"), specified in order of

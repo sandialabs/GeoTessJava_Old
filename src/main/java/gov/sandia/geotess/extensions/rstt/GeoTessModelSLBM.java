@@ -1,20 +1,46 @@
+//- ****************************************************************************
+//-
+//- Copyright 2009 Sandia Corporation. Under the terms of Contract
+//- DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+//- retains certain rights in this software.
+//-
+//- BSD Open Source License.
+//- All rights reserved.
+//-
+//- Redistribution and use in source and binary forms, with or without
+//- modification, are permitted provided that the following conditions are met:
+//-
+//-    * Redistributions of source code must retain the above copyright notice,
+//-      this list of conditions and the following disclaimer.
+//-    * Redistributions in binary form must reproduce the above copyright
+//-      notice, this list of conditions and the following disclaimer in the
+//-      documentation and/or other materials provided with the distribution.
+//-    * Neither the name of Sandia National Laboratories nor the names of its
+//-      contributors may be used to endorse or promote products derived from
+//-      this software without specific prior written permission.
+//-
+//- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+//- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+//- ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+//- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+//- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+//- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+//- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+//- POSSIBILITY OF SUCH DAMAGE.
+//-
+//- ****************************************************************************
+
 package gov.sandia.geotess.extensions.rstt;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
+import gov.sandia.geotess.*;
+import gov.sandia.gmp.util.globals.Globals;
+
+import java.io.*;
 import java.util.Arrays;
 import java.util.Scanner;
-
-import gov.sandia.geotess.Data;
-import gov.sandia.geotess.GeoTessException;
-import gov.sandia.geotess.GeoTessGrid;
-import gov.sandia.geotess.GeoTessMetaData;
-import gov.sandia.geotess.GeoTessModel;
-import gov.sandia.geotess.GeoTessUtils;
-import gov.sandia.gmp.util.globals.Globals;
 
 public class GeoTessModelSLBM extends GeoTessModel {
 
@@ -103,7 +129,7 @@ public class GeoTessModelSLBM extends GeoTessModel {
 			this.pdu = new UncertaintyPDU[0];
 		else
 			this.pdu = pdu;
-		
+
 		for (UncertaintyPDU u : pdu)
 			u.setGrid(this.getGrid());
 	}
@@ -124,7 +150,7 @@ public class GeoTessModelSLBM extends GeoTessModel {
 	{
 		this.pdu = new UncertaintyPDU[0];
 	}
-	
+
 	public void setPathDependentUncertainty(UncertaintyPDU pdu, int phase) throws Exception {
 		if (this.pdu == null || this.pdu.length == 0)
 			this.pdu = new UncertaintyPDU[4];
@@ -135,7 +161,7 @@ public class GeoTessModelSLBM extends GeoTessModel {
 	public void setPathDependentUncertainty(GeoTessModelSLBM otherModel, int phase) throws Exception {
 		if (this.pdu == null || this.pdu.length == 0)
 			this.pdu = new UncertaintyPDU[4];
-		
+
 		if (this.getGrid().getGridID().equals(otherModel.getGrid().getGridID()))
 			this.pdu[phase] = otherModel.getPathDependentUncertainty(phase);
 		else
@@ -145,13 +171,13 @@ public class GeoTessModelSLBM extends GeoTessModel {
 		}
 	}
 
-    /**
-     * Classes that extend GeoTessModel must override this method
-     * and populate their 'extra' data with shallow copies from the model 
-     * specified in the parameter list.  
-     * @param other the other model from which to copy extra data
-     * @throws Exception 
-     */
+	/**
+	 * Classes that extend GeoTessModel must override this method
+	 * and populate their 'extra' data with shallow copies from the model
+	 * specified in the parameter list.
+	 * @param other the other model from which to copy extra data
+	 * @throws Exception
+	 */
 	@Override
 	public void copyDerivedClassData(GeoTessModel other) throws Exception {
 		super.copyDerivedClassData(other);
@@ -270,10 +296,10 @@ public class GeoTessModelSLBM extends GeoTessModel {
 		// extending class.
 
 		String className = GeoTessUtils.readString(input);
-		
+
 		// some old slbm model files had 'SLBM' at the start.
 		if (className.equals("SLBM")) className = "GeoTessModelSLBM";
-		
+
 		if (!className.equalsIgnoreCase(this.getClass().getSimpleName()))
 			throw new IOException("Found name " + className + " but expecting " + this.getClass().getSimpleName());
 
@@ -357,13 +383,13 @@ public class GeoTessModelSLBM extends GeoTessModel {
 		output.write(String.format("  %d %d%n", piu.length, piu[0].length));
 		for (int p = 0; p < piu.length; ++p)
 			for (int a = 0; a < piu[p].length; ++a)
-				{
-					output.write(Uncertainty.getPhase(p) + " " + Uncertainty.getAttribute(a) + Globals.NL);
-					if (piu[p][a] == null)
-						output.write("   0   0\n");
-					else
-						piu[p][a].writeFileAscii(output);
-				}
+			{
+				output.write(Uncertainty.getPhase(p) + " " + Uncertainty.getAttribute(a) + Globals.NL);
+				if (piu[p][a] == null)
+					output.write("   0   0\n");
+				else
+					piu[p][a].writeFileAscii(output);
+			}
 
 		if (fileFormatVersion == 3) {
 			output.write(String.format("%d%n", pdu.length));
@@ -428,9 +454,9 @@ public class GeoTessModelSLBM extends GeoTessModel {
 	 * Some old versions of SLBM incorrectly wrote the model slowness values in the
 	 * wrong order (middle_crust_N followed by middle_crust_G). This method checks to see if the
 	 * layers are in the wrong order and, if they are, swaps them.
-	 * 
+	 *
 	 * Correct order is middle_crust_G(3) followed by middle_crust_N(4)
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	private void checkMiddleCrustLayers() throws IOException {
@@ -527,10 +553,10 @@ public class GeoTessModelSLBM extends GeoTessModel {
 
 		buf.append(String.format("path independent uncertainty supported phases = %s%n", getSupportedPhasesPIU()));
 		buf.append(String.format("path   dependent uncertainty supported phases = %s%n%n", getSupportedPhasesPDU()));
-		
+
 		for (int i=0; i<pdu.length; ++i)
 			buf.append(pdu[i].toString());
-		
+
 		return buf.toString();
 	}
 

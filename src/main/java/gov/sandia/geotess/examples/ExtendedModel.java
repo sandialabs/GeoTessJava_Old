@@ -35,9 +35,9 @@
 
 package gov.sandia.geotess.examples;
 
-import java.io.File;
-
 import gov.sandia.geotess.GeoTessModel;
+
+import java.io.File;
 
 public class ExtendedModel
 {

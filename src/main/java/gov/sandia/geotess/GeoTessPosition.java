@@ -80,9 +80,6 @@ import gov.sandia.gmp.util.numerical.vector.VectorUnit;
  * Sibson, R. (1981).
  * "A brief description of natural neighbor interpolation (Chapter 2)". In V.
  * Barnett. Interpreting Multivariate Data. Chichester: John Wiley. pp. 21-36.
- * 
- * @author Sandy Ballard
- * 
  */
 public abstract class GeoTessPosition
 {

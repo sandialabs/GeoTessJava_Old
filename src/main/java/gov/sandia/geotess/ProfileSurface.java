@@ -35,7 +35,7 @@
 
 package gov.sandia.geotess;
 
-import static gov.sandia.gmp.util.globals.Globals.NL;
+import gov.sandia.gmp.util.globals.InterpolatorType;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -43,16 +43,11 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Scanner;
 
-import gov.sandia.gmp.util.globals.InterpolatorType;
-
-//import ucar.ma2.IndexIterator;
+import static gov.sandia.gmp.util.globals.Globals.NL;
 
 /**
  * A Profile defined by zero radii and 1 Data object. This is useful for
  * representing 2D models.
- * 
- * @author Sandy Ballard
- * 
  */
 public class ProfileSurface extends Profile
 {

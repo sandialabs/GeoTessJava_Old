@@ -1,41 +1,50 @@
+//- ****************************************************************************
+//-
+//- Copyright 2009 Sandia Corporation. Under the terms of Contract
+//- DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+//- retains certain rights in this software.
+//-
+//- BSD Open Source License.
+//- All rights reserved.
+//-
+//- Redistribution and use in source and binary forms, with or without
+//- modification, are permitted provided that the following conditions are met:
+//-
+//-    * Redistributions of source code must retain the above copyright notice,
+//-      this list of conditions and the following disclaimer.
+//-    * Redistributions in binary form must reproduce the above copyright
+//-      notice, this list of conditions and the following disclaimer in the
+//-      documentation and/or other materials provided with the distribution.
+//-    * Neither the name of Sandia National Laboratories nor the names of its
+//-      contributors may be used to endorse or promote products derived from
+//-      this software without specific prior written permission.
+//-
+//- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+//- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+//- ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+//- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+//- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+//- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+//- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+//- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+//- POSSIBILITY OF SUCH DAMAGE.
+//-
+//- ****************************************************************************
+
 package gov.sandia.geotess.extensions.rstt;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Arrays;
+import gov.sandia.geotess.*;
+import gov.sandia.gmp.util.globals.DataType;
+
+import java.io.*;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
 
-import gov.sandia.geotess.Data;
-import gov.sandia.geotess.GeoTessGrid;
-import gov.sandia.geotess.GeoTessMetaData;
-import gov.sandia.geotess.GeoTessPosition;
-import gov.sandia.geotess.GeoTessUtils;
-import gov.sandia.geotess.Profile;
-import gov.sandia.geotess.ProfileSurface;
-import gov.sandia.gmp.util.globals.DataType;
-import gov.sandia.gmp.util.globals.GMTFormat;
-
-/**
- * 
- * @author jrhipp, sballar
- *
- */
 public class UncertaintyPDU extends Uncertainty {
 
 	/**
@@ -45,7 +54,7 @@ public class UncertaintyPDU extends Uncertainty {
 	private Map<String, String> properties;
 
 	private String gridId;
-	
+
 	private GeoTessGrid grid;
 
 	/**
@@ -128,7 +137,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Standard constructor that sets the phase number but nothing else.
-	 * 
+	 *
 	 * @param phase The input phase number.
 	 */
 	public UncertaintyPDU(int phase) {
@@ -138,7 +147,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Standard constructor that sets the phase number but nothing else.
-	 * 
+	 *
 	 * @param phase The input phase string.
 	 */
 	public UncertaintyPDU(String phase) {
@@ -147,7 +156,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Standard constructor that reads the objects contents from input file path.
-	 * 
+	 *
 	 * @param uncertaintyPath The file from which the object is read.
 	 * @param phase           The objects phase string.
 	 * @param readBinary      Reads binary format if true (else ascii format is
@@ -161,7 +170,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Standard constructor that reads the objects contents from input file path.
-	 * 
+	 *
 	 * @param uncertaintyPath The file from which the object is read.
 	 * @param phase           The objects phase number.
 	 * @param readBinary      Reads binary format if true (else ascii format is
@@ -176,7 +185,7 @@ public class UncertaintyPDU extends Uncertainty {
 	/**
 	 * Standard constructor that reads the objects contents from a
 	 * GeoTessModelSLBMPDU.
-	 * 
+	 *
 	 * @param model
 	 * @throws Exception
 	 */
@@ -188,7 +197,7 @@ public class UncertaintyPDU extends Uncertainty {
 	/**
 	 * Try to read the specified File as a binary file, ascii file and
 	 * GeoTessModelSLBM file.
-	 * 
+	 *
 	 * @param inputFile
 	 * @throws IOException
 	 */
@@ -259,7 +268,7 @@ public class UncertaintyPDU extends Uncertainty {
 	public String getGridId() {
 		return gridId;
 	}
-	
+
 	public int getNVertices() {
 		return nVertices;
 	}
@@ -286,7 +295,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Sets this objects data arrays.
-	 * 
+	 *
 	 * @param distBins    Distance bin array [dist].
 	 * @param crustError  Crust error array [vertex].
 	 * @param randomError Random error array [dist][vertex].
@@ -296,7 +305,7 @@ public class UncertaintyPDU extends Uncertainty {
 	 * @param bias
 	 */
 	public void setData(float[] distBins, float[] crustError, float[][] randomError, float[][] modelError,
-			float[][] bias) {
+						float[][] bias) {
 		pathUncDistanceBins = distBins;
 		pathUncCrustError = crustError;
 		pathUncRandomError = new float[0][0];
@@ -310,7 +319,7 @@ public class UncertaintyPDU extends Uncertainty {
 	 * Reads this path dependent uncertainty object from a file.
 	 * The format of the file is deduced by reading a handful of bytes from the
 	 * beginning of the file.
-	 * 
+	 *
 	 * @param fileName  name of the File
 	 * @throws IOException
 	 */
@@ -321,10 +330,10 @@ public class UncertaintyPDU extends Uncertainty {
 		byte[] b = new byte[nBytes];
 		input.read(b);
 		input.close();
-		
+
 		// convert the bytes to a string.
 		String s = new String(b);
-		
+
 		if (s.startsWith(className))
 			readFileBinary(fileName);
 		else if (s.startsWith("GEOTESSMODEL"))
@@ -572,7 +581,7 @@ public class UncertaintyPDU extends Uncertainty {
 		// that's it for the base class GeoTessModel information.
 
 		// now add the information for the derived class, GeoTessModelSLBMPDU.
-		
+
 		model.setProperties(properties);
 
 		model.setPhase(getPhaseStr());
@@ -585,9 +594,9 @@ public class UncertaintyPDU extends Uncertainty {
 	}
 
 	public void readModel(GeoTessModelSLBMPDU model) {
-		
+
 		grid = model.getGrid();
-		
+
 		gridId = model.getGrid().getGridID();
 
 		String phase = model.getPhase();
@@ -595,15 +604,15 @@ public class UncertaintyPDU extends Uncertainty {
 		phaseNum = getPhase(phase);
 
 		pathUncDistanceBins = model.getDistanceBins();
-		
+
 		properties = model.getProperties();
-		
+
 		nDistanceBins = model.getDistanceBins().length;
 
 		nVertices = model.getGrid().getNVertices();
 
 		includeRandomError = model.getNAttributes() == 3 * nDistanceBins + 1;
-		
+
 		pathUncCrustError = new float[nVertices];
 
 		if (includeRandomError)
@@ -625,7 +634,7 @@ public class UncertaintyPDU extends Uncertainty {
 				for (int bin = 0; bin < nDistanceBins; ++bin)
 					pathUncRandomError[bin][vertex] = model.getValueFloat(vertex, a++);
 		}
-		
+
 		updateProperties();
 
 	}
@@ -648,7 +657,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 			// resample the old GeoTessModelSLBMPDU model on the new grid.
 			GeoTessModelSLBMPDU newModel = (GeoTessModelSLBMPDU)pduModel.resample(newGrid);
-			
+
 			// replace all the UncertaintyPDU information with info from the new, resampled model.
 			readModel(newModel);
 		}
@@ -657,7 +666,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Writes this path dependent uncertainty file in binary format.
-	 * 
+	 *
 	 * @param output The output DataOutputStream.
 	 * @throws IOException
 	 */
@@ -703,7 +712,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Writes this path dependent uncertainty file in ascii format.
-	 * 
+	 *
 	 * @param output The output Writer.
 	 * @throws IOException
 	 */
@@ -716,16 +725,16 @@ public class UncertaintyPDU extends Uncertainty {
 
 		// First line of the file must be "# RSTT Path Dependent Uncertainty".
 		output.write("# RSTT Path Dependent Uncertainty\n");
-		
+
 		// write the fileFormatVersion.  The currently supported version is 1 but
 		// could change in the future if it becomes necessary to add additional information.
 		output.write("FileFormatVersion 1\n");
-		
+
 		// write out required and optional properties.  Required properties will be 
 		// loaded here and may be modified if this model is later written to output.
 		// Optional properties will not be modified by this code and will be output 
 		// to new files and by the toString function.
-		
+
 		// first make sure the required properties in the properties map are up to date.
 		updateProperties();
 
@@ -777,7 +786,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Reads this path dependent uncertainty object from an ascii file.
-	 * 
+	 *
 	 * @param input The input BufferedReader.
 	 * @throws IOException
 	 */
@@ -797,7 +806,7 @@ public class UncertaintyPDU extends Uncertainty {
 		line = input.nextLine();
 		if (!line.startsWith("# Properties"))
 			throw new IOException("Expected to find '# Properties' but found: " + line);
-		
+
 		properties = new LinkedHashMap<String, String>();
 		line = input.nextLine().trim();
 		while (line.length() > 0) {
@@ -816,11 +825,11 @@ public class UncertaintyPDU extends Uncertainty {
 		line = input.nextLine();
 		while (!line.startsWith("# Distance Bins"))
 			line = input.nextLine();
-		
+
 		pathUncDistanceBins = new float[nDistanceBins];
 		for (int i = 0; i < nDistanceBins; ++i)
 			pathUncDistanceBins[i] = input.nextFloat();
-		
+
 		line = input.nextLine();
 		while (!line.startsWith("# Crustal Error"))
 			line = input.nextLine();
@@ -832,7 +841,7 @@ public class UncertaintyPDU extends Uncertainty {
 			line = input.nextLine();
 			while (!line.startsWith("# Random Error"))
 				line = input.nextLine();
-			
+
 			pathUncRandomError = new float[nDistanceBins][nVertices];
 			for (int j = 0; j < nVertices; ++j)
 				for (int i = 0; i < nDistanceBins; ++i)
@@ -860,7 +869,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Reads this path dependent uncertainty object from a binary file.
-	 * 
+	 *
 	 * @param input The input DataInputStream.
 	 * @throws IOException
 	 */
@@ -883,7 +892,7 @@ public class UncertaintyPDU extends Uncertainty {
 		properties.clear();
 		int nProperties = input.readInt();
 		for (int i = 0; i < nProperties; ++i)
-			properties.put(GeoTessUtils.readString(input), 
+			properties.put(GeoTessUtils.readString(input),
 					GeoTessUtils.readString(input).replaceAll("<NEWLINE>", "\n"));
 
 		ingestProperties();
@@ -915,10 +924,10 @@ public class UncertaintyPDU extends Uncertainty {
 				pathUncBias[i][j] = input.readFloat();
 
 	}
-	
+
 	/**
 	 * make sure the required properties are up to date.
-	 * @return 
+	 * @return
 	 */
 	private UncertaintyPDU updateProperties()
 	{
@@ -933,7 +942,7 @@ public class UncertaintyPDU extends Uncertainty {
 	/**
 	 * extract required properties: phase, gridId, nDistanceBins, nVertices and
 	 * includeRandomError
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	private void ingestProperties() throws IOException {
@@ -967,8 +976,8 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Reads this path dependent uncertainty object from a binary file.
-	 * 
-	 * @param fileName 
+	 *
+	 * @param fileName
 	 * @throws IOException
 	 */
 	@Override
@@ -980,8 +989,8 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Reads this path dependent uncertainty object from an ascii file.
-	 * 
-	 * @param fileName 
+	 *
+	 * @param fileName
 	 * @throws IOException
 	 */
 	@Override
@@ -993,8 +1002,8 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Reads this path dependent uncertainty object from a file.
-	 * 
-	 * @param fileName   
+	 *
+	 * @param fileName
 	 * @param readBinary reads binary format if true (else ascii format is read).
 	 * @throws IOException
 	 */
@@ -1008,7 +1017,7 @@ public class UncertaintyPDU extends Uncertainty {
 
 	/**
 	 * Writes this path dependent uncertainty file.
-	 * 
+	 *
 	 * @param outputFile  The directory path to write this file.
 	 * @param writeBinary writes binary format if true (else ascii format is
 	 *                    written).
@@ -1026,7 +1035,7 @@ public class UncertaintyPDU extends Uncertainty {
 	public boolean isPathDependent() {
 		return true;
 	}
-	
+
 	@Override
 	public String toString()
 	{
