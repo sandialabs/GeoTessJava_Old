@@ -84,7 +84,7 @@ public class GeoTessUtils extends VectorUnit
 	 * 
 	 * @return code version
 	 */
-	public static String getVersion() { return "2.6.2"; }
+	public static String getVersion() { return "2.6.1"; }
 
 	public enum OSType
 	{
@@ -111,8 +111,8 @@ public class GeoTessUtils extends VectorUnit
 	};
 
 	/**
-	 * <ul>
 	 * Return the operating system on which GeoTess is currently running:
+	 * <ul>
 	 * <li>OS.WINDOWS
 	 * <li>OS.MAC
 	 * <li>OS.UNIX (includes all flavors of solaris and sunos)
