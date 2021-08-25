@@ -35,6 +35,29 @@
 
 package gov.sandia.geotess;
 
+import static java.lang.Math.PI;
+import static java.lang.Math.abs;
+import static java.lang.Math.ceil;
+import static java.lang.Math.max;
+
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Scanner;
+
 import gov.sandia.gmp.util.colormap.ColorMap;
 import gov.sandia.gmp.util.colormap.SimpleColorMap;
 import gov.sandia.gmp.util.containers.Tuple;
@@ -44,6 +67,7 @@ import gov.sandia.gmp.util.containers.hash.sets.HashSetInteger;
 import gov.sandia.gmp.util.containers.hash.sets.HashSetInteger.Iterator;
 import gov.sandia.gmp.util.globals.DataType;
 import gov.sandia.gmp.util.globals.InterpolatorType;
+import gov.sandia.gmp.util.globals.Utils;
 import gov.sandia.gmp.util.mapprojection.RobinsonProjection;
 import gov.sandia.gmp.util.numerical.polygon.GreatCircle;
 import gov.sandia.gmp.util.numerical.polygon.GreatCircle.GreatCircleException;
@@ -53,15 +77,6 @@ import gov.sandia.gmp.util.numerical.vector.VectorUnit;
 import gov.sandia.gmp.util.vtk.VTKCell;
 import gov.sandia.gmp.util.vtk.VTKCellType;
 import gov.sandia.gmp.util.vtk.VTKDataSet;
-
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.*;
-import java.util.List;
-import java.util.*;
-import java.util.Map.Entry;
-
-import static java.lang.Math.*;
 
 /**
  * A collection of static utilities that extract organized information from a
@@ -76,6 +91,9 @@ import static java.lang.Math.*;
  * <li>attribute values interpolated on a vertical slice through a model.
  * <li>attribute values along a radial 'borehole' at a specified position.
  * </ul>
+ * 
+ * @author sballar
+ * 
  */
 public class GeoTessModelUtils
 {
@@ -84,6 +102,9 @@ public class GeoTessModelUtils
 	 * and as an xy point projected using a Robinson projection. This class
 	 * implements methods equals() and hashCode() making it suitable for storing
 	 * in Set and Map objects.
+	 * 
+	 * @author sballar
+	 * 
 	 */
 	public static class Point
 	{
@@ -611,7 +632,7 @@ public class GeoTessModelUtils
 		// delta is total distance in radians between x0 and x1
 		// double delta = greatCircle.getDistance();
 
-		// dx is path increment that yields nx equally spaced points
+		// dx is path increment that returns nx equally spaced points
 		// along the great circle (radians).
 		double dx = greatCircle.getDistance() / (nx - 1);
 
@@ -1532,6 +1553,10 @@ public class GeoTessModelUtils
 			case 3:
 				// % change of reciprocals
 				v = 100. * (1 / v1 - 1 / v0) / (1 / v0);
+				break;
+			case 4:
+				// % 
+				v = 100. * v0 / v1;
 				break;
 			default:
 				v = Double.NaN;
@@ -4053,8 +4078,7 @@ public class GeoTessModelUtils
 
 		File outputFile = new File(outputDirectory, "continent_boundaries.vtk");
 
-		InputStream inputStream = GeoTessModelUtils.class
-				.getResourceAsStream("/resources/continent_boundaries.vtk");
+		InputStream inputStream = Utils.getResourceAsStream("continent_boundaries.vtk");
 
 		if (inputStream != null)
 		{
@@ -4080,7 +4104,7 @@ public class GeoTessModelUtils
 	public static Tuple<double[][], int[][]> loadContinentBoundaries()
 			throws IOException
 	{
-		InputStream inp = GeoTessModelUtils.class.getResourceAsStream("/continent_boundaries.vtk");
+		InputStream inp = Utils.getResourceAsStream("continent_boundaries.vtk");
 
 		Scanner input = new Scanner(inp);
 

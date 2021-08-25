@@ -58,6 +58,9 @@ import gov.sandia.gmp.util.numerical.vector.VectorGeo;
  * The Current Limits of Resolution for Surface Wave 
  * Tomography in North America, EOS Trans AGU, 81, F897, 2000.
  * http://igppweb.ucsd.edu/~gabi/crust2.html
+ * 
+ * @author sballar
+ * 
  */
 public class TestCrust20
 {

@@ -46,6 +46,9 @@ package gov.sandia.geotess;
  * <li>SURFACE_EMPTY: no radii and no Data
  * </ol>
  * <p>
+ * 
+ * @author Sandy Ballard Ballard
+ * 
  */
 public enum ProfileType
 {

@@ -43,6 +43,17 @@ package gov.sandia.geotess;
  * <p>
  * Description:
  * </p>
+ * 
+ * <p>
+ * Copyright: Copyright (c) 2007
+ * </p>
+ * 
+ * <p>
+ * Company: Sandia National Laboratories
+ * </p>
+ * 
+ * @author Sandy Ballard
+ * @version 2.0
  */
 @SuppressWarnings("serial")
 public class GeoTessException extends Exception

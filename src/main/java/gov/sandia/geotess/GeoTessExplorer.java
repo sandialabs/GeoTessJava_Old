@@ -35,6 +35,21 @@
 
 package gov.sandia.geotess;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Scanner;
+import java.util.TreeMap;
+
 import gov.sandia.geotess.extensions.libcorr3d.LibCorr3DModel;
 import gov.sandia.geotess.extensions.rstt.GeoTessModelSLBM;
 import gov.sandia.geotess.extensions.rstt.Uncertainty;
@@ -48,58 +63,57 @@ import gov.sandia.gmp.util.numerical.polygon.Polygon;
 import gov.sandia.gmp.util.numerical.vector.EarthShape;
 import gov.sandia.gmp.util.numerical.vector.VectorUnit;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-
 /**
  * A command line driven set of utilities that can be used to extract maps,
  * vertical slices, boreholes and vtk plot files from aƒGeoTessModel. 
  *
  * Available functions include:
  * <ul>
- * <li>version                -- output the GeoTess version number
- * <li>toString               -- print summary information about a model
- * <li>statistics             -- print summary statistics about the data in a model
- * <li>extractGrid            -- load a model or grid and write its grid to stdout, vtk, kml, ascii or binary file
- * <li>resample               -- resample a model onto a new grid
- * <li>extractActiveNodes     -- load a model and extract the positions of all active nodes
+ * <li>version              -- output the GeoTess version number
+ * <li>toString             -- print summary information about a model
+ * <li>updateModelDescription -- update the description information for a model
+ * <li>statistics           -- print summary statistics about the data in a model
+ * <li>extractGrid          -- load a model or grid and write its grid to stdout, vtk, kml, ascii or binary file
+ * <li>resample             -- resample a model onto a new grid
+ * <li>extractActiveNodes   -- load a model and extract the positions of all active nodes
  * <li>replaceAttributeValues -- replace the attribute values associated with all active nodes
- * <li>reformat               -- load a model and write it out in another format
- * <li>getValues              -- interpolate values at a single point
- * <li>getValuesFile          -- interpolate values at points specified in an ascii file
- * <li>interpolatePoint       -- interpolate values at a single point, verbose output
- * <li>borehole               -- interpolate values along a radial profile
- * <li>profile                -- extract model values at vertex closest to specified latitude, longitude position
- * <li>findClosestPoint       -- find the closest point to a supplied geographic location and return information about it 
- * <li>slice                  -- interpolate values on a vertical plane defined by a great circle
- * <li>sliceDistAz            -- interpolate values on a vertical plane defined by a great circle defined by a point, a distance and a direction
- * <li>mapValuesDepth         -- interpolate values on a lat, lon grid at constant depths
- * <li>mapValuesLayer         -- interpolate values on a lat, lon grid at fractional radius in a layer 
- * <li>mapLayerBoundary       -- depth of layer boundaries on a lat, lon grid
- * <li>mapLayerThickness      -- layer thickness on a lat, lon grid
- * <li>values3DBlock          -- interpolate values on a regular lat, lon, radius grid
- * <li>function               -- new model with attributes calculated from two input models
- * <li>vtkLayers              -- generate vtk plot file of values at the tops of layers
- * <li>vtkDepths              -- generate vtk plot file of values at specified depths
- * <li>vtkLayerThickness      -- generate vtk plot file of layer thicknesses
- * <li>vtkLayerBoundary       -- generate vtk plot file of depth or elevation of layer boundaries
- * <li>vtkSlice               -- generate vtk plot file of vertical slice
- * <li>vtkSolid               -- generate vtk plot file of entire globe
- * <li>vtk3DBlock             -- generate vtk plot file of values on a lat-lon-depth grid
- * <li>vtkPoints              -- generate vtk plot of point data
- * <li>vtkRobinson            -- generate vtk plot of a Robinson projection of model data
- * <li>vtkRobinsonLayers      -- generate vtk plot of a Robinson projection of model data at tops of multiple layers
- * <li>vtkRobinsonPoints      -- generate vtk plot of a Robinson projection of point data
+ * <li>reformat             -- load a model and write it out in another format
+ * <li>getValues            -- interpolate values at a single point
+ * <li>getValuesFile        -- interpolate values at points specified in an ascii file
+ * <li>interpolatePoint     -- interpolate values at a single point, verbose output
+ * <li>borehole             -- interpolate values along a radial profile
+ * <li>profile              -- extract model values at vertex closest to specified latitude, longitude position
+ * <li>findClosestPoint     -- find the closest point to a supplied geographic location and return information about it
+ * <li>slice                -- interpolate values on a vertical plane defined by a great circle
+ * <li>sliceDistAz          -- interpolate values on a vertical plane defined by a great circle defined by a point, a distance and a direction
+ * <li>mapValuesDepth       -- interpolate values on a lat, lon grid at constant depths
+ * <li>mapValuesLayer       -- interpolate values on a lat, lon grid at fractional radius in a layer
+ * <li>mapLayerBoundary     -- depth of layer boundaries on a lat, lon grid
+ * <li>mapLayerThickness    -- layer thickness on a lat, lon grid
+ * <li>values3DBlock        -- interpolate values on a regular lat, lon, radius grid
+ * <li>function             -- new model with attributes calculated from two input models
+ * <li>vtkLayers            -- generate vtk plot file of values at the tops of layers
+ * <li>vtkDepths            -- generate vtk plot file of values at specified depths
+ * <li>vtkLayerThickness    -- generate vtk plot file of layer thicknesses
+ * <li>vtkLayerBoundary     -- generate vtk plot file of depth or elevation of layer boundaries
+ * <li>vtkSlice             -- generate vtk plot file of vertical slice
+ * <li>vtkSolid             -- generate vtk plot file of entire globe
+ * <li>vtk3DBlock           -- generate vtk plot file of values on a lat-lon-depth grid
+ * <li>vtkPoints            -- generate vtk plot of point data
+ * <li>vtkRobinson          -- generate vtk plot of a Robinson projection of model data
+ * <li>vtkRobinsonLayers    -- generate vtk plot of a Robinson projection of model data at tops of multiple layers
+ * <li>vtkRobinsonPoints    -- generate vtk plot of a Robinson projection of point data
  * <li>vtkRobinsonTriangleSize -- generate vtk plot of triangle size on Robinson projection
- * <li>getLatitudes           -- array of equally spaced latitude values
- * <li>getLongitudes          -- array of equally spaced longitude values
- * <li>getDistanceDegrees     -- array of equally spaced distances along a great circle
- * <li>translatePolygon       -- translate polygon between kml/kmz and ascii format
- * <li>extractSiteTerms       -- extract site terms from a GeoTessModelSiteData and print to screen
- * <li>replaceSiteTerms       -- replace site terms in a GeoTessModelSiteData with values loaded from a file
- * <li>getClassName           -- discover the class name of a specified model
+ * <li>vtkLayerAverage		-- generate vtk plot of the average values within the crust of a designated model
+ * <li>reciprocalModel		-- generates a reciprocal GeoTessModel, where all values are inverted
+ * <li>renameLayer			-- renames an individual layer in a GeoTessModel
+ * <li>getLatitudes         -- array of equally spaced latitude values
+ * <li>getLongitudes        -- array of equally spaced longitude values
+ * <li>getDistanceDegrees   -- array of equally spaced distances along a great circle
+ * <li>translatePolygon     -- translate polygon between kml/kmz and ascii format
+ * <li>extractSiteTerms     -- extract site terms from a GeoTessModelSiteData and print to screen
+ * <li>replaceSiteTerms     -- replace site terms in a GeoTessModelSiteData with values loaded from a file
+ * <li>getClassName         -- discover the class name of a specified model
  * <li>extractPathDependentUncertaintyRSTT -- extract all the path dependent uncertainty information from a GeoTessModelSLBM
  * <li>replacePathDependentUncertaintyRSTT -- replace all the path dependent uncertainty information in a GeoTessModelSLBM
  * </ul>
@@ -320,6 +334,7 @@ public class GeoTessExplorer
 	{
 		if (args.length == 0)
 		{
+			System.out.println("GeoTessExplorer "+GeoTessJava.getVersion());
 			System.out .println("\nSpecify one of the following functions:\n"
 					+ parseFunctionList());
 
@@ -331,7 +346,7 @@ public class GeoTessExplorer
 
 		String cmd = args[0];
 		if (cmd.equalsIgnoreCase("version"))
-			System.out.println("GeoTessJava."+GeoTessUtils.getVersion());
+			System.out.println("GeoTessJava."+GeoTessJava.getVersion());
 		else if (cmd.equalsIgnoreCase("toString"))
 			toString(args);
 		else if (cmd.equalsIgnoreCase("updateModelDescription"))
@@ -556,6 +571,10 @@ public class GeoTessExplorer
 		for (int phaseIndex=0; phaseIndex<4; ++phaseIndex)
 		{
 			UncertaintyPDU pdu = model.getPathDependentUncertainty(phaseIndex);
+			if (pdu == null)
+				throw new Exception(String.format("Model %s%ndoes not support path dependent uncertainty.",
+					inputFile.getAbsolutePath()));
+			
 			String phase = Uncertainty.getPhase(phaseIndex);
 			if (!pdu.getPhaseStr().equals(phase))
 				throw new Exception(String.format("Phase in pduFile = %s is not equal to phase %s%n",
@@ -3630,8 +3649,9 @@ public class GeoTessExplorer
 							+ "           0: x1 - x0;                       // simple difference%n"
 							+ "           1: 1/x1 - 1/x0;                   // difference of reciprocals%n"  
 							+ "           2: 100 * (x1 - x0) / x0;          // %% change%n" 
-							+ "           3: 100.*(1/x1 - 1/x0) / (1/x0);   // %% change of reciprocals%n"
-
+							+ "           3: 100 * (1/x1 - 1/x0) / (1/x0);  // %% change of reciprocals%n"
+							+ "           4: 100. * v0 / v1;                // simple percentage%n"
+							
 							+ " 13  --  new attribute name (no spaces)%n"
 							+ " 14  --  new attribute units (no spaces)%n"
 

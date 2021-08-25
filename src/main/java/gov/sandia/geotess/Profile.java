@@ -35,16 +35,20 @@
 
 package gov.sandia.geotess;
 
-import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
-import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
-import gov.sandia.gmp.util.containers.hash.maps.HashMapIntegerDouble;
-import gov.sandia.gmp.util.globals.InterpolatorType;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Scanner;
+
+import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
+import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
+import gov.sandia.gmp.util.containers.hash.maps.HashMapIntegerDouble;
+import gov.sandia.gmp.util.globals.InterpolatorType;
 
 /**
  * A Profile defines the distribution of Data along a radial profile through a
@@ -67,6 +71,8 @@ import java.util.*;
  * <p>
  * There is no public constructor. Call the constructor of one of the derived
  * classes to obtain an instance.
+ * 
+ * @author Sandy Ballard
  */
 public abstract class Profile
 {

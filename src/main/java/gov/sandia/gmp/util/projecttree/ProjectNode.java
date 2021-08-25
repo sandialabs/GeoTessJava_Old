@@ -1,0 +1,179 @@
+package gov.sandia.gmp.util.projecttree;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+/**
+ * A single node in a ProjectTree. The root element of a ProjectTree is a
+ * ProjectNode. Each ProjectNode records the groupId, artifactId, version, and a
+ * Collection of other ProjectNodes that are dependencies of the ProjectNode.
+ * 
+ * @author sballar
+ *
+ */
+class ProjectNode implements Comparator<ProjectNode> {
+	protected String groupId;
+	protected String projectId;
+	protected String version;
+	protected Collection<ProjectNode> dependents;
+
+	public ProjectNode() {
+		dependents = new ArrayList<ProjectNode>();
+	}
+
+	public ProjectNode(String groupId, String project, String version) {
+		this();
+		this.groupId = groupId;
+		this.projectId = project;
+		this.version = version;
+	}
+
+	public String getGroupId() {
+		return groupId;
+	}
+
+	public String getProjectId() {
+		return projectId;
+	}
+
+	public String getVersion() {
+		return version;
+	}
+
+	public Collection<ProjectNode> getDependents() {
+		return dependents;
+	}
+
+	/**
+	 * Copy all the contents of node into this.
+	 * 
+	 * @param node the ProjectNode from which to copy information.
+	 */
+	protected void copy(ProjectNode node) {
+		this.groupId = node.groupId;
+		this.projectId = node.projectId;
+		this.version = node.version;
+		this.dependents.clear();
+		this.dependents.addAll(node.dependents);
+	}
+
+	@Override
+	public String toString() {
+		return String.format("%s/%s/%s", groupId, projectId, version);
+	}
+	
+	public String getVersionFile(String timestamp)
+	{
+		return String.format("group=%s%n"
+				+ "artifact=%s%n"
+				+ "version=%s%n"
+				+ "timestamp=%s%n",
+				groupId, projectId, version, timestamp);
+				
+	}
+
+	/**
+	 * Retrieve the set of unique ProjectNodes in the project.
+	 * @param topDown
+	 * @return
+	 */
+	protected Set<ProjectNode> getSet(boolean topDown) {
+		Set<ProjectNode> set = new LinkedHashSet<>();
+		return this.addToSet(set, topDown);
+	}
+
+	/**
+	 * Retrieve a String containing the unique set of project nodes that comprise
+	 * the project tree.
+	 * 
+	 * @param topDown if true, the projects will be topDown order, otherwise
+	 *                bottomUp.
+	 * @return a String with all the project nodes.
+	 */
+	protected String getSetString(boolean topDown) {
+		StringBuffer buf = new StringBuffer();
+		for (ProjectNode node : getSet(topDown))
+			buf.append(node.toString() + "\n");
+		return buf.toString();
+	}
+
+	protected String getSetString() {
+		ArrayList<String> list = new ArrayList<>();
+		for (ProjectNode node : getSet(true))
+			list.add(node.toString());
+		Collections.sort(list);
+		StringBuffer buf = new StringBuffer();
+		for (String s : list)
+			buf.append(s+"\n");
+		return buf.toString();
+	}
+
+	private Set<ProjectNode> addToSet(Set<ProjectNode> set, boolean topDown) {
+		// if topDown is true, add this to the set before the dependents
+		if (topDown)
+			set.add(this);
+
+		for (ProjectNode d : dependents)
+			d.addToSet(set, topDown);
+
+		// if topDown is false, add this to the set after the dependents
+		if (!topDown)
+			set.add(this);
+
+		return set;
+	}
+
+	/**
+	 * For this ProjectNode, and all dependent nodes, add an entry to the buffer.
+	 * @param buffer
+	 * @param indentation
+	 */
+	protected void code(StringBuffer buffer) {
+		for (ProjectNode d : dependents)
+			buffer.append(String.format("%-12s %s.addDependencies(dependencies);%n", 
+					projectId, d.projectId));
+		buffer.append("\n");
+		
+		for (ProjectNode d : dependents)
+			d.code(buffer);
+	}
+
+	/**
+	 * For this ProjectNode, and all dependent nodes, add an entry to the buffer.
+	 * @param buffer
+	 * @param indentation
+	 */
+	protected void toString(StringBuffer buffer, String indentation) {
+		buffer.append(indentation + toString() + "\n");
+		indentation = indentation + "   ";
+		for (ProjectNode d : dependents)
+			d.toString(buffer, indentation);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || o.getClass() != this.getClass()) {
+			return false;
+		}
+		return this.projectId.equals(((ProjectNode) o).projectId) 
+				&& this.version.equals(((ProjectNode) o).version)
+				&& this.groupId.equals(((ProjectNode) o).groupId);
+	}
+
+	@Override
+	public int hashCode() {
+		return toString().hashCode();
+	}
+
+	@Override
+	public int compare(ProjectNode o1, ProjectNode o2) {
+		return o1.toString().compareTo(o2.toString());
+	}
+}

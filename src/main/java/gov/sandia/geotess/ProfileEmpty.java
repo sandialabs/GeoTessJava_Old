@@ -35,9 +35,7 @@
 
 package gov.sandia.geotess;
 
-import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
-import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
-import gov.sandia.gmp.util.globals.InterpolatorType;
+import static gov.sandia.gmp.util.globals.Globals.NL;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -48,10 +46,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Scanner;
 
-import static gov.sandia.gmp.util.globals.Globals.NL;
+import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
+import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
+import gov.sandia.gmp.util.globals.InterpolatorType;
+
+//import ucar.ma2.IndexIterator;
 
 /**
  * A Profile defined by two radii and zero Data.
+ * 
+ * @author Sandy Ballard
+ * 
  */
 public class ProfileEmpty extends Profile
 {
@@ -88,6 +93,17 @@ public class ProfileEmpty extends Profile
 		this(input.nextFloat(), input.nextFloat());
 	}
 
+//	/**
+//	 * Constructor that loads required information from netcdf Iterator objects.
+//	 * 
+//	 * @param itRadii
+//	 * @throws GeoTessException
+//	 */
+//	protected ProfileEmpty(IndexIterator itRadii) throws GeoTessException
+//	{
+//		this(itRadii.getFloatNext(), itRadii.getFloatNext());
+//	}
+
 	/**
 	 * Constructor that loads required information from a binary file.
 	 * 
@@ -115,6 +131,14 @@ public class ProfileEmpty extends Profile
 		output.writeFloat(radiusBottom);
 		output.writeFloat(radiusTop);
 	}
+
+//	@Override
+//	protected void write(IndexIterator nPoints, IndexIterator radii,
+//			IndexIterator values)
+//	{
+//		radii.setFloatNext(radiusBottom);
+//		radii.setFloatNext(radiusTop);
+//	}
 
 	@Override
 	public ProfileType getType()

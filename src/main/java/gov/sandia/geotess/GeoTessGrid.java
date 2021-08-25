@@ -35,6 +35,32 @@
 
 package gov.sandia.geotess;
 
+import static gov.sandia.gmp.util.globals.Globals.NL;
+import static gov.sandia.gmp.util.globals.Globals.readString;
+import static gov.sandia.gmp.util.globals.Globals.writeString;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Scanner;
+import java.util.TreeMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
 import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
 import gov.sandia.gmp.util.containers.hash.maps.HashMapIntegerDouble;
 import gov.sandia.gmp.util.containers.hash.sets.HashSetInteger;
@@ -45,13 +71,6 @@ import gov.sandia.gmp.util.md5.MD5Hash;
 import gov.sandia.gmp.util.numerical.platonicsolid.PlatonicSolid;
 import gov.sandia.gmp.util.numerical.vector.EarthShape;
 import gov.sandia.gmp.util.numerical.vector.VectorUnit;
-
-import java.io.*;
-import java.util.*;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-
-import static gov.sandia.gmp.util.globals.Globals.*;
 
 /**
  * Manages the geometry and topology of a multi-level triangular tessellation of
@@ -78,6 +97,8 @@ import static gov.sandia.gmp.util.globals.Globals.*;
  * Accurate Calculation of Ray Theory Seismic Travel Time Through Variable
  * Resolution 3D Earth Models, Seismological Research Letters, v.80, n. 6 p.
  * 989-999.
+ * 
+ * @author Sandy Ballard
  */
 public class GeoTessGrid
 {
@@ -272,6 +293,20 @@ public class GeoTessGrid
 	{
 		loadGrid(input);
 	}
+
+	//	/**
+	//	 * Constructor that loads a grid from a netcdf file.
+	//	 * 
+	//	 * @param input
+	//	 * @param optimization
+	//	 * @throws IOException
+	//	 */
+	//	protected GeoTessGrid(NetcdfFile input, OptimizationType optimization)
+	//			throws IOException
+	//	{
+	//		this.optimization = optimization;
+	//		loadGridNetcdf(input);
+	//	}
 
 	/**
 	 * Parameterized constructor.

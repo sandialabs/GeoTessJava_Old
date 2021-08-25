@@ -73,6 +73,8 @@ import gov.sandia.geotess.GeoTessUtils;
  * GeoTessModel information.  After that, the methods
  * may read/write the application specific data from/to
  * the end of the standard GeoTessModel file.
+ * @author sballar
+ *
  */
 public class GeoTessModelExtended extends GeoTessModel
 {

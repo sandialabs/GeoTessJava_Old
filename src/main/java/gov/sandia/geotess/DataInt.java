@@ -35,15 +35,17 @@
 
 package gov.sandia.geotess;
 
-import gov.sandia.gmp.util.globals.DataType;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Scanner;
 
+import gov.sandia.gmp.util.globals.DataType;
+
 /**
  * A single value of type int will be associated with each node of the model.
+ * 
+ * @author Sandy Ballard
  */
 public class DataInt extends Data
 {

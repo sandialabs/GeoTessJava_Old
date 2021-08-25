@@ -36,20 +36,26 @@
 package gov.sandia.geotess;
 
 
-import gov.sandia.gmp.util.numerical.vector.EarthShape;
-import gov.sandia.gmp.util.numerical.vector.VectorUnit;
-
-import java.io.*;
-import java.util.ArrayList;
-
 import static java.lang.Math.exp;
 import static java.lang.Math.log;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+
+import gov.sandia.gmp.util.numerical.vector.EarthShape;
+import gov.sandia.gmp.util.numerical.vector.VectorUnit;
 
 /**
  * Collection of static functions to manipulate geographic information.
  * <p>
  * There is no public constructor because all methods are static. Methods can be
  * called like "GeoTessUtils.getVector(lat, lon)"
+ * 
+ * @author Sandy Ballard
  */
 public class GeoTessUtils extends VectorUnit
 {
@@ -76,16 +82,9 @@ public class GeoTessUtils extends VectorUnit
 	public static String NL = System.getProperty("line.separator");
 
 	/**
-	 * Retrieve the code version: First number indicates major revisions, second
-	 * number indicates minor revisions that involve interface or file format
-	 * changes, and the third number indicates bug fixes or performance
-	 * improvements that do not involve changes in basic functionality,
-	 * interface changes, or file format changes.
+	 * @author sballar
 	 * 
-	 * @return code version
 	 */
-	public static String getVersion() { return "2.6.1"; }
-
 	public enum OSType
 	{
 		WINDOWS, MACOSX, SUNOS, LINUX,  UNIX, UNRECOGNIZED;
@@ -111,8 +110,8 @@ public class GeoTessUtils extends VectorUnit
 	};
 
 	/**
-	 * Return the operating system on which GeoTess is currently running:
 	 * <ul>
+	 * Return the operating system on which GeoTess is currently running:
 	 * <li>OS.WINDOWS
 	 * <li>OS.MAC
 	 * <li>OS.UNIX (includes all flavors of solaris and sunos)

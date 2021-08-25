@@ -35,6 +35,27 @@
 
 package gov.sandia.geotess;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Scanner;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import gov.sandia.geotess.extensions.amplitude.GeoTessModelAmplitude;
 import gov.sandia.geotess.extensions.libcorr3d.LibCorr3DModel;
 import gov.sandia.geotess.extensions.rstt.GeoTessModelSLBM;
@@ -52,14 +73,6 @@ import gov.sandia.gmp.util.numerical.polygon.GreatCircle;
 import gov.sandia.gmp.util.numerical.polygon.Polygon;
 import gov.sandia.gmp.util.numerical.vector.EarthShape;
 import gov.sandia.gmp.util.numerical.vector.Vector3D;
-
-import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Scanner;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * <b>GeoTessModel</b> manages the <i>grid</i> and <i>data</i> that comprise a
@@ -119,6 +132,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * among all the threads in a multi-threaded application and each thread will
  * have it's own instance of a GeoTessPosition object that references the common
  * GeoTessModel.
+ * 
+ * @author Sandy Ballard
+ * 
  */
 public class GeoTessModel
 {
@@ -1639,7 +1655,7 @@ public class GeoTessModel
 			pos.set(layer, v, (r1+r2) / 2.);
 			pos.getWeights(weights, GeoTessUtils.getDistance3D(v1,r1,v2,r2));
 		}
-		return !weights.containsKey(new Integer(-1));
+		return !weights.containsKey(Integer.valueOf(-1));
 	}
 
 	/**
@@ -1773,7 +1789,7 @@ public class GeoTessModel
 				pos.getWeights(weights, delta*r);
 			}
 		}
-		return !weights.containsKey(new Integer(-1));
+		return !weights.containsKey(Integer.valueOf(-1));
 	}
 
 	/**

@@ -53,6 +53,9 @@ import gov.sandia.gmp.util.numerical.vector.VectorGeo;
  * GeoTess package in the GeoTessModels directory.
  * <p>The data used to populate the model come from the ak135 model,
  * which is hardcoded into the source code for the example.
+ * 
+ * @author sballar
+ * 
  */
 public class PopulateModel3D
 {
@@ -92,7 +95,9 @@ public class PopulateModel3D
 			// information purposes.
 			metaData.setDescription(String
 					.format("Simple example of populating a 3D GeoTess model%n" +
-							"comprised of 3 multi-level tessellations%n"));
+							"comprised of 3 multi-level tessellations%n"
+							+ "author: Sandy Ballard%n"
+							+ "contact: sballar@sandia.gov"));
 
 			// Specify a list of layer names delimited by semi-colons 
 			metaData.setLayerNames("INNER_CORE; OUTER_CORE; LOWER_MANTLE; " +

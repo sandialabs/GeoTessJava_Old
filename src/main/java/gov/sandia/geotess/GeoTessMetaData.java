@@ -35,21 +35,30 @@
 
 package gov.sandia.geotess;
 
-import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
-import gov.sandia.gmp.util.globals.DataType;
-import gov.sandia.gmp.util.numerical.vector.EarthShape;
-
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.Scanner;
 
+import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
+import gov.sandia.gmp.util.globals.DataType;
+import gov.sandia.gmp.util.numerical.vector.EarthShape;
+
 /**
  * GeoTessMetaData stores basic information about a GeoTessModel. Each
  * GeoTessModel has a single instance of MetaData that it passes around to
  * wherever the information is needed.
+ * 
+ * @author Sandy Ballard
+ * 
  */
 public class GeoTessMetaData
 {
@@ -406,7 +415,7 @@ public class GeoTessMetaData
 					+ "cannot read GeoTess files written in file format %d. %n"
 					+ "Please update GeoTessJava to the latest version, "
 					+ "available at www.sandia.gov/geotess%n", 
-					GeoTessUtils.getVersion(), modelFileFormat));
+					GeoTessJava.getVersion(), modelFileFormat));
 
 		if (modelFileFormat >= 3)
 		{
@@ -488,7 +497,7 @@ public class GeoTessMetaData
 					+ "cannot read GeoTess files written in file format %d. %n"
 					+ "Please update GeoTessJava to the latest version, "
 					+ "available at www.sandia.gov/geotess%n", 
-					GeoTessUtils.getVersion(), modelFileFormat));
+					GeoTessJava.getVersion(), modelFileFormat));
 
 
 		if (modelFileFormat >= 3)
@@ -1201,7 +1210,13 @@ public class GeoTessMetaData
 	 */
 	public int getTessellation(int layer)
 	{
-		return getLayerTessIds()[layer];
+		int[] tessIds = getLayerTessIds();
+
+		if (layer < 0 || layer >= tessIds.length)
+			throw new IndexOutOfBoundsException(layer + " is not a valid layer index. Must be between 0 and " +
+					(tessIds.length - 1) + ".");
+
+		return tessIds[layer];
 	}
 
 	/**
@@ -1297,7 +1312,7 @@ public class GeoTessMetaData
 		
 		// output the model class name and version string.
 
-		buf.append(modelClassName + ".").append(GeoTessUtils.getVersion()).append(GeoTessUtils.NL);
+		buf.append(modelClassName + ".").append(GeoTessJava.getVersion()).append(GeoTessUtils.NL);
 
 		// Output the OS name.
 

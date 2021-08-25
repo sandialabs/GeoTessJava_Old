@@ -35,10 +35,7 @@
 
 package gov.sandia.geotess;
 
-import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
-import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
-import gov.sandia.gmp.util.containers.hash.sets.HashSetInteger;
-import gov.sandia.gmp.util.globals.InterpolatorType;
+import static gov.sandia.gmp.util.numerical.vector.VectorUnit.dot;
 
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
@@ -47,7 +44,10 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.BitSet;
 
-import static gov.sandia.gmp.util.numerical.vector.VectorUnit.dot;
+import gov.sandia.gmp.util.containers.arraylist.ArrayListDouble;
+import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
+import gov.sandia.gmp.util.containers.hash.sets.HashSetInteger;
+import gov.sandia.gmp.util.globals.InterpolatorType;
 
 /**
  * Implements the Natural Neighbor Interpolation algorithm of Sibson (1980,
@@ -75,6 +75,9 @@ import static gov.sandia.gmp.util.numerical.vector.VectorUnit.dot;
  * There is no public constructor. Call
  * GeoTessModel.getPosition(InterpolatorType.NATURAL_NEIGHBOR) to obtain an
  * instance.
+ * 
+ * @author Sandy Ballard
+ * 
  */
 public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 {
