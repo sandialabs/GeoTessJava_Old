@@ -1,1 +1,0 @@
-../../git/geo-tess-java/github-builder/copy_geotess.sh
