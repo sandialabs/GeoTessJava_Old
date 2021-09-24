@@ -1,4 +1,36 @@
-package gov.sandia.geotess.extensions.libcorr3d;
+/**
+ * Copyright 2009 Sandia Corporation. Under the terms of Contract
+ * DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+ * retains certain rights in this software.
+ * 
+ * BSD Open Source License.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ *    * Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *    * Neither the name of Sandia National Laboratories nor the names of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+package gov.sandia.gmp.util.globals;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -6,8 +38,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Scanner;
 
-import gov.sandia.geotess.GeoTessUtils;
-import gov.sandia.gmp.util.globals.GMTFormat;
+import gov.sandia.gmp.util.numerical.vector.VectorGeo;
 
 
 /**
@@ -146,23 +177,6 @@ public class Site implements Serializable, Comparable<Site>
 		this.deast = deast;
 	}
 
-	public Site(String sta, double ontime, double offtime, double lat, double lon,
-			double elev, String staname, String statype, String refsta,
-			double dnorth, double deast) {
-		this.sta = sta;
-		setOntime(ontime);
-		setOfftime(offtime);
-		this.lat = lat;
-		this.lon = lon;
-		this.elev = elev;
-		this.staname = staname;
-		this.statype = statype;
-		this.refsta = refsta;
-		this.dnorth = dnorth;
-		this.deast = deast;
-	}
-
-
 	/**
 	 * Copy constructor.
 	 */
@@ -191,120 +205,95 @@ public class Site implements Serializable, Comparable<Site>
 	/**
 	 * Constructor that loads values from a Scanner. It can read the output of
 	 * the toString() function.
-	 * Note: ondate and offdate are read/written as epoch times because c++ version
-	 * requires it.
 	 */
 	public Site(Scanner input) throws IOException {
-		String line = input.nextLine();
-		sta = line.substring(line.indexOf(":")+1).trim();
-
-		line = input.nextLine();
-		setOntime(Double.parseDouble(line.substring(line.indexOf(":")+1).trim()));
-
-		line = input.nextLine();
-		setOfftime(Double.parseDouble(line.substring(line.indexOf(":")+1).trim()));
-
-		line = input.nextLine();
-		lat = Double.parseDouble(line.substring(line.indexOf(":")+1).trim());
-
-		line = input.nextLine();
-		lon = Double.parseDouble(line.substring(line.indexOf(":")+1).trim());
-
-		line = input.nextLine();
-		elev = Double.parseDouble(line.substring(line.indexOf(":")+1).trim());
-
-		line = input.nextLine();
-		staname = line.substring(line.indexOf(":")+1).trim();
-
-		line = input.nextLine();
-		statype = line.substring(line.indexOf(":")+1).trim();
-
-		line = input.nextLine();
-		refsta = line.substring(line.indexOf(":")+1).trim();
-
-		line = input.nextLine();
-		dnorth = Double.parseDouble(line.substring(line.indexOf(":")+1).trim());
-
-		line = input.nextLine();
-		deast = Double.parseDouble(line.substring(line.indexOf(":")+1).trim());
-
+		this(input.next(), input.nextLong(), input.nextLong(), input.nextDouble(), 
+				input.nextDouble(), input.nextDouble(), 
+				input.findInLine("\".*?\"").replaceAll("\"", "").trim(), 
+				input.next(), input.next(), input.nextDouble(), input.nextDouble());
 	}
 
 	/**
 	 * Constructor that loads values from a DataInputStream.
-	 * Note: ondate and offdate are read/written as epoch times because c++ version
-	 * requires it.
 	 */
 	public Site(DataInputStream input) throws IOException
 	{
-		this(GeoTessUtils.readString(input), 
-				input.readDouble(), 
-				input.readDouble(), 
+		this(Globals.readString(input), input.readLong(), input.readLong(), 
 				input.readDouble(), input.readDouble(), input.readDouble(),
-				GeoTessUtils.readString(input), GeoTessUtils.readString(input), 
-				GeoTessUtils.readString(input), input.readDouble(), input.readDouble());
+				Globals.readString(input), Globals.readString(input), 
+				Globals.readString(input), input.readDouble(), input.readDouble());
+	}
+
+	/**
+	 * Parameterized constructor. Populates all values with specified values.
+	 * Splits line on tab character.  Expects 11 tokens.
+	 */
+	public Site(String line) {
+		this(line.split("\t"));
+	}
+
+	/**
+	 * Parameterized constructor. Populates all values with specified values.
+	 * Splits line on specified character.  Expects 11 tokens.
+	 */
+	public Site(String line, String delimiter) {
+		this(line.split(delimiter));
+	}
+
+	/**
+	 * Parameterized constructor. Populates all values with specified values.
+	 * Parameter s must have 11 elements: sta, ondate, offdate, lat, lon, elev,
+	 * staname, statype, refsta, dnorth, deast
+	 */
+	public Site(String[] s) {
+		this(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], s[9], s[10]);
+	}
+
+	/**
+	 * Parameterized constructor. Populates all values with specified values.
+	 */
+	public Site(String sta, String ondate, String offdate, String lat, String lon,
+			String elev, String staname, String statype, String refsta,
+			String dnorth, String deast) {
+		this.sta = sta.trim();
+		this.ondate = Long.parseLong(ondate.trim());
+		this.offdate = Long.parseLong(offdate.trim());
+		this.lat = Double.parseDouble(lat.trim());
+		this.lon = Double.parseDouble(lon.trim());
+		this.elev = Double.parseDouble(elev.trim());
+		this.staname = staname.trim();
+		this.statype = statype.trim();
+		this.refsta = refsta.trim();
+		this.dnorth = Double.parseDouble(dnorth.trim());
+		this.deast = Double.parseDouble(deast.trim());
 	}
 
 	/**
 	 * Write this row to a DataOutputStream.
-	 * Note: ondate and offdate are read/written as epoch times because c++ version
-	 * requires it.
 	 */
 	public void write(DataOutputStream output) throws IOException {
-		GeoTessUtils.writeString(output, sta);
-		output.writeDouble(getOntime());
-		output.writeDouble(getOfftime());
+		Globals.writeString(output, sta);
+		output.writeLong(ondate);
+		output.writeLong(offdate);
 		output.writeDouble(lat);
 		output.writeDouble(lon);
 		output.writeDouble(elev);
-		GeoTessUtils.writeString(output, staname);
-		GeoTessUtils.writeString(output, statype);
-		GeoTessUtils.writeString(output, refsta);
+		Globals.writeString(output, staname);
+		Globals.writeString(output, statype);
+		Globals.writeString(output, refsta);
 		output.writeDouble(dnorth);
 		output.writeDouble(deast);
 	}
 
 	/**
-	 * Write this row to an ascii String.
+	 * Write this row to an ascii String with no newline at the end.
 	 */
 	@Override
 	public String toString() {
-		  return String.format(
-				"sta:     %s%n"
-		      + "ondate:  %d%n"
-		      + "offdate: %d%n"
-		      + "lat:     %1.6f%n"
-		      + "lon:     %1.6f%n"
-		      + "elev:    %1.4f%n"
-		      + "staname: %s%n"
-		      + "statype: %s%n"
-		      + "refsta:  %s%n"
-		      + "dnorth:  %1.3f%n"
-		      + "deast:   %1.3f%n",
-		      sta, ondate, offdate, lat, lon, elev, staname, statype, refsta, dnorth, deast);
-	}
+		return String.format("%s %d %d %1.6f %1.6f %.4f \"%s\" %s %s %1.4f %1.4f",
+				sta, ondate, offdate, lat, lon, elev, staname, statype,
+				refsta, dnorth, deast);
 
-	/**
-	 * Write this row to an ascii String.
-	 * Note: ondate and offdate are read/written as epoch times because c++ version
-	 * requires it.
-	 */
-	public String getString() {
-		  return String.format(
-				"sta:     %s%n"
-		      + "ontime:  %1.3f%n"
-		      + "offtime: %1.3f%n"
-		      + "lat:     %1.6f%n"
-		      + "lon:     %1.6f%n"
-		      + "elev:    %1.4f%n"
-		      + "staname: %s%n"
-		      + "statype: %s%n"
-		      + "refsta:  %s%n"
-		      + "dnorth:  %1.3f%n"
-		      + "deast:   %1.3f%n",
-		      sta, 
-		      getOntime(), getOfftime(), 
-		      lat, lon, elev, staname, statype, refsta, dnorth, deast);
 	}
 
 	/**
@@ -342,6 +331,10 @@ public class Site implements Serializable, Comparable<Site>
 	public long getOndate() {
 		return ondate;
 	}
+	
+	public double getOntime() {
+		return GMTFormat.getEpochTime(ondate);
+	}
 
 	/**
 	 * Turn on date. Date on which the station, or sensor indicated began
@@ -358,6 +351,11 @@ public class Site implements Serializable, Comparable<Site>
 		this.ondate = ondate;
 		return this;
 	}
+	
+	public Site setOntime(double epochtime) {
+		this.ondate = GMTFormat.getJDate(epochtime);
+		return this;
+	}
 
 	/**
 	 * Turn off date. This column is the Julian Date on which the station or
@@ -369,6 +367,10 @@ public class Site implements Serializable, Comparable<Site>
 		return offdate;
 	}
 	
+	public double getOfftime() {
+		return GMTFormat.getOffTime(offdate);
+	}
+
 	/**
 	 * Turn off date. This column is the Julian Date on which the station or
 	 * sensor indicated was turned off, dismantled, or moved (see <I>ondate</I>)
@@ -380,51 +382,7 @@ public class Site implements Serializable, Comparable<Site>
 		this.offdate = offdate;
 		return this;
 	}
-
-	/**
-	 * Turn on time
-	 * 
-	 * @return ontime (epoch time).  if ondate == -1 returns -1e10
-	 */
-	public double getOntime() {
-		return ondate == Site.ONDATE_NA ? -1e10 : GMTFormat.getEpochTime((int)ondate);
-	}
-
-	/**
-	 * Turn on date. Date on which the station, or sensor indicated began
-	 * operating. The columns offdate and ondate are not intended to accommodate
-	 * temporary downtimes, but rather to indicate the time period for which the
-	 * columns of the station (<I>lat</I>, <I>lon</I>, <I>elev</I>,) are valid
-	 * for the given station code. Stations are often moved, but with the
-	 * station code remaining unchanged.
-	 * 
-	 * @param ontime
-	 * @return reference to this
-	 */
-	public Site setOntime(double ontime) {
-		this.ondate = GMTFormat.getJDate(ontime);
-		if (this.ondate < 1000000L)
-			this.ondate = Site.ONDATE_NA;
-		return this;
-	}
-
-	/**
-	 * Turn off date. This column is the Julian Date on which the station or
-	 * sensor indicated was turned off, dismantled, or moved (see <I>ondate</I>)
-	 * 
-	 * @return offdate
-	 */
-	public double getOfftime() {
-		return GMTFormat.getOffTime((int)offdate);
-	}
 	
-	/**
-	 * Turn off date. This column is the Julian Date on which the station or
-	 * sensor indicated was turned off, dismantled, or moved (see <I>ondate</I>)
-	 * 
-	 * @param offtime
-	 * @return reference to this
-	 */
 	public Site setOfftime(double offtime) {
 		this.offdate = GMTFormat.getJDate(offtime);
 		return this;
@@ -641,7 +599,7 @@ public class Site implements Serializable, Comparable<Site>
 	 */
 	public double[] getUnitVector()
 	{
-		return GeoTessUtils.getVectorDegrees(lat, lon);
+		return VectorGeo.getVectorDegrees(lat, lon);
 	}
 
 	/**
@@ -651,7 +609,7 @@ public class Site implements Serializable, Comparable<Site>
 	 */
 	public double getRadius()
 	{
-		return GeoTessUtils.getEarthRadius(getUnitVector()) + elev;
+		return VectorGeo.getEarthRadius(getUnitVector()) + elev;
 	}
 
 	@Override
@@ -670,7 +628,7 @@ public class Site implements Serializable, Comparable<Site>
 		if (o == null || o.getClass() != this.getClass()) {
 			return false;
 		}
-		return (this.ondate == ((Site)o).ondate) && this.sta.equals(((Site)o).sta);
+		return this.ondate == ((Site)o).ondate && this.sta.equals(((Site)o).sta);
 	}
 
 	@Override
@@ -679,4 +637,3 @@ public class Site implements Serializable, Comparable<Site>
 	}
 
 }
-

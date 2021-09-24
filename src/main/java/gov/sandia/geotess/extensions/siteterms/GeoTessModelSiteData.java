@@ -1,3 +1,35 @@
+/**
+ * Copyright 2009 Sandia Corporation. Under the terms of Contract
+ * DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+ * retains certain rights in this software.
+ * 
+ * BSD Open Source License.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ *    * Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *    * Neither the name of Sandia National Laboratories nor the names of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 package gov.sandia.geotess.extensions.siteterms;
 
 import java.io.DataInputStream;
@@ -18,7 +50,9 @@ import gov.sandia.geotess.GeoTessModel;
 import gov.sandia.geotess.GeoTessUtils;
 import gov.sandia.gmp.util.exceptions.GMPException;
 import gov.sandia.gmp.util.globals.DataType;
+import gov.sandia.gmp.util.globals.GMTFormat;
 import gov.sandia.gmp.util.globals.Globals;
+import gov.sandia.gmp.util.globals.Site;
 import gov.sandia.gmp.util.numerical.vector.EarthShape;
 
 /**
@@ -40,7 +74,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 	 */
 	private int nSiteTerms = 0;
 
-	protected AttributeDataDefinitions attributes = new AttributeDataDefinitions();
+	protected AttributeDataDefinitions siteDataAttributes = new AttributeDataDefinitions();
 
     /**
      * Classes that extend GeoTessModel must override this method
@@ -55,16 +89,12 @@ public class GeoTessModelSiteData extends GeoTessModel
 		super.copyDerivedClassData(other);
 		this.rcvrSiteTerms = ((GeoTessModelSiteData)other).rcvrSiteTerms;    
 		this.nSiteTerms = ((GeoTessModelSiteData)other).nSiteTerms;
-		this.attributes = ((GeoTessModelSiteData)other).attributes;
+		this.siteDataAttributes = ((GeoTessModelSiteData)other).siteDataAttributes;
 	}
 
 	/**
 	 * Construct a new GeoTessModelSiteTerms object and populate it with
 	 * information from the specified file.
-	 * 
-	 * <p>OptimizationType will default to SPEED, as opposed to MEMORY.  With 
-	 * OptimizationType.SPEED, the code will execute more quickly but will 
-	 * require more memory to run.
 	 * 
 	 * @param modelInputFile
 	 *            name of file containing the model.
@@ -91,6 +121,36 @@ public class GeoTessModelSiteData extends GeoTessModel
 	}
 
 	/**
+	 * Construct a new GeoTessModelSiteTerms object.  Populate it with
+	 * base class information from the specified file.  No derived class data
+	 * is loaded.
+	 * 
+	 * @param modelInputFile
+	 *            name of file containing the model.
+	 * @param relativeGridPath
+	 *            the relative path from the directory where the model is stored
+	 *            to the directory where the grid is stored. Often, the model
+	 *            and grid are stored together in the same file in which case
+	 *            this parameter is ignored. Sometimes, however, the grid is
+	 *            stored in a separate file and only the name of the grid file
+	 *            (without path information) is stored in the model file. In
+	 *            this case, the code needs to know which directory to search
+	 *            for the grid file. The default is "" (empty string), which
+	 *            will cause the code to search for the grid file in the same
+	 *            directory in which the model file resides. Bottom line is that
+	 *            the default value is appropriate when the grid is stored in
+	 *            the same file as the model, or the model file is in the same
+	 *            directory as the model file.
+	 * @throws IOException
+	 */
+	public GeoTessModelSiteData(File modelInputFile, String relativeGridPath,
+			AttributeDataDefinitions siteDataAttributes) throws IOException
+	{ 
+		super(modelInputFile, relativeGridPath); 
+		this.siteDataAttributes = siteDataAttributes;;
+	}
+
+	/**
 	 * Construct a new GeoTessModelSiteTerms object and populate it with
 	 * information from the specified file.
 	 * 
@@ -98,10 +158,6 @@ public class GeoTessModelSiteData extends GeoTessModel
 	 * when the grid information is stored in the same file as the model or when
 	 * the grid is stored in a separate file located in the same directory as the
 	 * model file.
-	 * 
-	 * <p>OptimizationType will default to SPEED, as opposed to MEMORY.  With 
-	 * OptimizationType.SPEED, the code will execute more quickly but will 
-	 * require more memory to run.
 	 * 
 	 * @param modelInputFile
 	 *            name of file containing the model.
@@ -114,12 +170,29 @@ public class GeoTessModelSiteData extends GeoTessModel
 	}
 
 	/**
+	 * Construct a new GeoTessModelSiteTerms object.  Populate it with
+	 * base class information from the specified file.  No derived class data
+	 * is loaded.
+	 * 
+	 * <p>relativeGridPath is assumed to be "" (empty string), which is appropriate
+	 * when the grid information is stored in the same file as the model or when
+	 * the grid is stored in a separate file located in the same directory as the
+	 * model file.
+	 * 
+	 * @param modelInputFile
+	 *            name of file containing the model.
+	 * @throws IOException
+	 */
+	public GeoTessModelSiteData(File modelInputFile,
+			AttributeDataDefinitions siteDataAttributes) throws IOException
+	{ 
+		super(modelInputFile); 
+		this.siteDataAttributes = siteDataAttributes;;
+	}
+
+	/**
 	 * Construct a new GeoTessModelSiteTerms object and populate it with
 	 * information from the specified file.
-	 * 
-	 * <p>OptimizationType will default to SPEED, as opposed to MEMORY.  With 
-	 * OptimizationType.SPEED, the code will execute more quickly but will 
-	 * require more memory to run.
 	 * 
 	 * @param modelInputFile
 	 *            name of file containing the model.
@@ -153,10 +226,6 @@ public class GeoTessModelSiteData extends GeoTessModel
 	 * when the grid information is stored in the same file as the model or when
 	 * the grid is stored in a separate file located in the same directory as the
 	 * model file.
-	 * 
-	 * <p>OptimizationType will default to SPEED, as opposed to MEMORY.  With 
-	 * OptimizationType.SPEED, the code will execute more quickly but will 
-	 * require more memory to run.
 	 * 
 	 * @param modelInputFile
 	 *            name of file containing the model.
@@ -228,7 +297,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 	public GeoTessModelSiteData(String gridFileName, GeoTessMetaData metaData, AttributeDataDefinitions attributes) throws IOException
 	{ 
 		super(gridFileName, metaData); 
-		this.attributes = attributes;
+		this.siteDataAttributes = attributes;
 	}
 
 	/**
@@ -263,7 +332,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 	public GeoTessModelSiteData(File gridFileName, GeoTessMetaData metaData, AttributeDataDefinitions attributes) throws IOException
 	{ 
 		super(gridFileName, metaData); 
-		this.attributes = attributes;
+		this.siteDataAttributes = attributes;
 	}
 
 	/**
@@ -339,7 +408,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 	public GeoTessModelSiteData(GeoTessGrid grid, GeoTessMetaData metaData, AttributeDataDefinitions attributes) throws GeoTessException, IOException
 	{ 
 		super(grid, metaData); 
-		this.attributes = attributes;
+		this.siteDataAttributes = attributes;
 	}
 
 	/**
@@ -358,7 +427,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 		for (int i = 0; i < baseModel.getNVertices(); ++i)
 			for (int j = 0; j < baseModel.getNLayers(); ++j)
 				setProfile(i,j,baseModel.getProfile(i, j));
-		this.attributes = attributes;
+		this.siteDataAttributes = attributes;
 	}
 
 	/**
@@ -402,7 +471,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 
 		String sta;
 		ArrayList<SiteData> st;
-		attributes.readAll(input);	
+		siteDataAttributes.readAll(input);	
 		nSiteTerms = input.readInt();
 		for (int i = 0; i < nSiteTerms; ++i)
 		{
@@ -413,7 +482,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 				st = new ArrayList<SiteData>();
 				rcvrSiteTerms.put(sta, st);
 			}
-			st.add(new SiteData(input, getMetaData().getEarthShape(), attributes, formatVersion));
+			st.add(new SiteData(input, getMetaData().getEarthShape(), siteDataAttributes, formatVersion));
 		}
 	}
 
@@ -427,10 +496,10 @@ public class GeoTessModelSiteData extends GeoTessModel
 	{
 		String s = "";
 		s = "Site Name " + Globals.repeat(" ",  10);
-		int nattr = attributes.getNAttributes();
+		int nattr = siteDataAttributes.getNAttributes();
 		for (int i = 0; i < nattr; ++i)
 		{
-			s += attributes.getAttributeName(i);
+			s += siteDataAttributes.getAttributeName(i);
 			if (i < nattr-1) s += Globals.repeat(" ", 15);
 		}
 		s += Globals.NL + Globals.repeat("-", 60) + Globals.NL + Globals.NL;
@@ -467,7 +536,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 		output.writeInt(2);
 
 		// write application specific data in binary format.
-		attributes.writeAll(output);
+		siteDataAttributes.writeAll(output);
 		output.writeInt(nSiteTerms);
 		for (Map.Entry<String, ArrayList<SiteData>> entry : rcvrSiteTerms.entrySet())
 			for (SiteData siteTerm : entry.getValue())
@@ -515,7 +584,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 
 		String sta;
 		ArrayList<SiteData> st;
-		attributes.readAll(input);
+		siteDataAttributes.readAll(input);
 		nSiteTerms = input.nextInt();
 		for (int i=0; i<nSiteTerms; ++i)
 		{
@@ -526,7 +595,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 				st = new ArrayList<SiteData>();
 				rcvrSiteTerms.put(sta, st);
 			}
-			st.add(new SiteData(input, getMetaData().getEarthShape(), attributes, formatVersion));
+			st.add(new SiteData(input, getMetaData().getEarthShape(), siteDataAttributes, formatVersion));
 		}		
 	}
 
@@ -548,7 +617,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 		output.write(String.format("%s%n%d%n", this.getClass().getSimpleName(), 2));
 
 		// write application specific data in ascii format.
-		attributes.writeAll(output);
+		siteDataAttributes.writeAll(output);
 		output.write(String.format("%d%n", nSiteTerms));
 		for (Map.Entry<String, ArrayList<SiteData>> entry : rcvrSiteTerms.entrySet())
 			for (SiteData siteTerm : entry.getValue())
@@ -653,7 +722,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 		while (input.hasNext())
 		{
 			String sta = input.next().trim();
-			SiteData siteTerm = new SiteData(input, es, attributes);
+			SiteData siteTerm = new SiteData(input, es, siteDataAttributes);
 
 			ArrayList<SiteData> list = rcvrSiteTerms.get(sta);
 			if (list == null)
@@ -680,9 +749,9 @@ public class GeoTessModelSiteData extends GeoTessModel
 	public void addSiteTerm(Site site, double[] siteTerm)
 			throws IOException
 	{
-		if (attributes.getNAttributes() != siteTerm.length)
+		if (siteDataAttributes.getNAttributes() != siteTerm.length)
 			throw new IOException("Attribute storage size (" +
-					attributes.getNAttributes() + ") is not " +
+					siteDataAttributes.getNAttributes() + ") is not " +
 					" equal to input site term array length (" +
 					siteTerm.length + ") ...");
 
@@ -692,7 +761,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 			list = new ArrayList<SiteData>();
 			rcvrSiteTerms.put(site.getSta(), list);
 		}
-		SiteData sd = new SiteData(site, attributes);
+		SiteData sd = new SiteData(site, siteDataAttributes);
 		for (int i = 0; i < siteTerm.length; ++i) sd.setSiteTerm(i, siteTerm[i]);
 		list.add(sd);
 		++nSiteTerms;
@@ -704,17 +773,17 @@ public class GeoTessModelSiteData extends GeoTessModel
 	 * @param sta           The site name.
 	 * @param staUnitVector The lateral unit vector position of the site.
 	 * @param staRadius     The site radius (km).
-	 * @param onTime     The sites epoch on time (seconds).
-	 * @param offTime    The sites epoch off time (seconds).
+	 * @param onDate     The site's onDate (jdate).
+	 * @param offDate    The site's offDate (jdate).
 	 * @param siteTerm      Array of site terms (seconds).
 	 */
 	public void addSiteTerm(String sta, double[] staUnitVector, double staRadius,
-			double onTime, double offTime, double[] siteTerm)
+			int onDate, int offDate, double[] siteTerm)
 					throws IOException
 	{
-		if (attributes.getNAttributes() != siteTerm.length)
+		if (siteDataAttributes.getNAttributes() != siteTerm.length)
 			throw new IOException("Attribute storage size (" +
-					attributes.getNAttributes() + ") is not " +
+					siteDataAttributes.getNAttributes() + ") is not " +
 					" equal to input site term array length (" +
 					siteTerm.length + ") ...");
 
@@ -724,42 +793,8 @@ public class GeoTessModelSiteData extends GeoTessModel
 			list = new ArrayList<SiteData>();
 			rcvrSiteTerms.put(sta, list);
 		}
-		SiteData sd = new SiteData(staUnitVector, staRadius, onTime, 
-				offTime, attributes);
-		for (int i = 0; i < siteTerm.length; ++i) sd.setSiteTerm(i, siteTerm[i]);
-		list.add(sd);
-		++nSiteTerms;
-	}
-
-	/**
-	 * Add a Site definition with an associated siteTerm to this GeoModel.
-	 *  
-	 * @param sta           The site name.
-	 * @param staUnitVector The lateral unit vector position of the site.
-	 * @param staRadius     The site radius (km).
-	 * @param staOnDate     The sites epoch on time (seconds).
-	 * @param staOffDate    The sites epoch off time (seconds).
-	 * @param siteTerm      Array of site terms (seconds).
-	 * @throws Exception 
-	 */
-	public void addSiteTerm(String sta, double[] staUnitVector, double staRadius,
-			int staOnDate, int staOffDate, double[] siteTerm)
-					throws Exception
-	{
-		if (attributes.getNAttributes() != siteTerm.length)
-			throw new IOException("Attribute storage size (" +
-					attributes.getNAttributes() + ") is not " +
-					" equal to input site term array length (" +
-					siteTerm.length + ") ...");
-
-		ArrayList<SiteData> list = rcvrSiteTerms.get(sta);
-		if (list == null)
-		{
-			list = new ArrayList<SiteData>();
-			rcvrSiteTerms.put(sta, list);
-		}
-		SiteData sd = new SiteData(staUnitVector, staRadius, staOnDate, staOffDate,
-				attributes);
+		SiteData sd = new SiteData(staUnitVector, staRadius, onDate, 
+				offDate, siteDataAttributes);
 		for (int i = 0; i < siteTerm.length; ++i) sd.setSiteTerm(i, siteTerm[i]);
 		list.add(sd);
 		++nSiteTerms;
@@ -795,7 +830,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 			// if one is found that has on/off times that includes the 
 			// arrival time at the station, return the site term value.
 			for (SiteData st : list)
-				if (st.inRange(epochTime))
+				if (st.inRange(GMTFormat.getJDate(epochTime)))
 					return st.getSiteTerm(attributeIndex);
 
 		}
@@ -933,12 +968,12 @@ public class GeoTessModelSiteData extends GeoTessModel
 
 	public int getNSiteTermAttributes()
 	{
-		return attributes.getNAttributes();
+		return siteDataAttributes.getNAttributes();
 	}
 
 	public AttributeDataDefinitions getSiteTermAttributes()
 	{
-		return attributes;
+		return siteDataAttributes;
 	}
 
 	/**
@@ -952,7 +987,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 	 */
 	public void setSiteAttributes(String[] names, String[] units, DataType dataType)
 	{
-		attributes = new AttributeDataDefinitions(names, units, dataType);
+		siteDataAttributes = new AttributeDataDefinitions(names, units, dataType);
 	}
 
 	/**
@@ -966,7 +1001,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 	 */
 	public void setSiteAttributes(String names, String units, DataType dataType)
 	{
-		attributes = new AttributeDataDefinitions(names, units, dataType);
+		siteDataAttributes = new AttributeDataDefinitions(names, units, dataType);
 	}
 
 	@Override
@@ -974,7 +1009,7 @@ public class GeoTessModelSiteData extends GeoTessModel
 	{
 		StringBuffer s = new StringBuffer(super.toString());
 		s.append(String.format("getNSiteTermAttributes()() = %d%n", getNSiteTermAttributes()));
-		s.append(attributes.getAttributeNamesString()+"\n");
+		s.append(siteDataAttributes.getAttributeNamesString()+"\n");
 		s.append(String.format("getNSiteTermStations() = %d%n", getNSiteTermStations()));
 		return s.toString();
 	}

@@ -1,3 +1,35 @@
+/**
+ * Copyright 2009 Sandia Corporation. Under the terms of Contract
+ * DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+ * retains certain rights in this software.
+ * 
+ * BSD Open Source License.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ *    * Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *    * Neither the name of Sandia National Laboratories nor the names of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 package gov.sandia.geotess.extensions.libcorr3d;
 
 import java.io.BufferedWriter;
@@ -21,6 +53,7 @@ import gov.sandia.geotess.GeoTessModel;
 import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
 import gov.sandia.gmp.util.containers.multilevelmap.MultiLevelMap;
 import gov.sandia.gmp.util.globals.GMTFormat;
+import gov.sandia.gmp.util.globals.Site;
 import gov.sandia.gmp.util.logmanager.ScreenWriterOutput;
 
 /**
@@ -205,7 +238,8 @@ public class LibCorr3DModels
 
         if (!supportFile.exists())
         {
-          System.out.println("LibCorr3DModels is generating default _supportMap.txt file.");
+        	if (logger != null && logger.getVerbosity() > 0)
+        		logger.writeln("LibCorr3DModels is generating default _supportMap.txt file.");
 
           // load all the files and extract station, phase, attribute
           // information
@@ -445,13 +479,13 @@ public class LibCorr3DModels
 
           if (logger != null && logger.getVerbosity() > 0)
           {
-            System.out.printf("LibCorr3DModels loaded info about %d models %nand %d station-phase-attribute combinations%n"
+            logger.writef("LibCorr3DModels loaded info about %d models %nand %d station-phase-attribute combinations%n"
                 + "from file %s%nin %1.3f seconds%n%n",
                 modelIndexes.size(), models.size(),
                 supportFile.getCanonicalPath(),
                 timer * 1e-9);
 
-            System.out.println("LibCorr3D model : associated station names:\n" + getModelSiteMapToString());
+            logger.writeln("LibCorr3D model : associated station names:\n" + getModelSiteMapToString());
           }
 
           // String errors = testSupportMap();
@@ -990,4 +1024,3 @@ public class LibCorr3DModels
   // }
 
 }
-

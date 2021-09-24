@@ -1,38 +1,35 @@
-//- ****************************************************************************
-//- 
-//- Copyright 2009 Sandia Corporation. Under the terms of Contract
-//- DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
-//- retains certain rights in this software.
-//- 
-//- BSD Open Source License.
-//- All rights reserved.
-//- 
-//- Redistribution and use in source and binary forms, with or without
-//- modification, are permitted provided that the following conditions are met:
-//- 
-//-    * Redistributions of source code must retain the above copyright notice,
-//-      this list of conditions and the following disclaimer.
-//-    * Redistributions in binary form must reproduce the above copyright
-//-      notice, this list of conditions and the following disclaimer in the
-//-      documentation and/or other materials provided with the distribution.
-//-    * Neither the name of Sandia National Laboratories nor the names of its
-//-      contributors may be used to endorse or promote products derived from
-//-      this software without specific prior written permission.
-//- 
-//- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-//- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-//- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-//- ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-//- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-//- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-//- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-//- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-//- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-//- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-//- POSSIBILITY OF SUCH DAMAGE.
-//-
-//- ****************************************************************************
-
+/**
+ * Copyright 2009 Sandia Corporation. Under the terms of Contract
+ * DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+ * retains certain rights in this software.
+ * 
+ * BSD Open Source License.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ *    * Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *    * Neither the name of Sandia National Laboratories nor the names of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 package gov.sandia.geotess;
 
 import static java.lang.Math.max;
@@ -729,52 +726,9 @@ public abstract class GeoTessPosition
 	 *                values.
 	 * @throws GeoTessException 
 	 */
-	public void getWeights(double dkm,	HashMap<Integer, Double> weights) throws GeoTessException
-	{
-		getWeights(weights, dkm, radius, layerId, radialInterpolatorType);
-	}
-
-	/**
-	 * Returns the influencing node weights at the current position.
-	 * 
-	 * @param dkm The step size about the position (km).
-	 * @param weights The weight list that associates the active point index with
-	 *                its determined weight. Note this map is not cleared.
-	 *                Calculated weights are added to any previously existing
-	 *                values.
-	 * @throws GeoTessException 
-	 */
 	public void getWeights(double dkm,	Map<Integer, Double> weights) throws GeoTessException
 	{
 		getWeights(weights, dkm, radius, layerId, radialInterpolatorType);
-	}
-
-	/**
-	 * Returns the influencing node weights at the current lateral position
-	 * using the input layer index and radius.
-	 * 
-	 * @param dkm The step size about the position (km).
-	 * @param weights The weight list that associates the active point index with
-	 *                its determined weight. Note this map is not cleared.
-	 *                Calculated weights are added to any previously existing
-	 *                values.
-	 * @param radius           The radius at which the interpolation is performed.
-	 * @param majorLayerIndex  The major layer index for which the interpolation
-	 *                         is performed.
-	 * @param radialInterpType The radial interpolation type.
-	 * @throws GeoTessException 
-	 */
-	public void getWeights(HashMap<Integer, Double> weights, double dkm, double radius, int majorLayerIndex, InterpolatorType radialInterpType) throws GeoTessException
-	{
-		//**T
-		int tid = layerTessIds[majorLayerIndex];
-		checkTessellation(tid);
-
-		int[] v = vertices.get(tid).getArray();
-		double[] h = hCoefficients.get(tid).getArray();
-
-		for (int i = 0; i < vertices.get(tid).size(); ++i)
-			profiles[v[i]][majorLayerIndex].getWeights(weights, dkm, radius, h[i], radialInterpType);
 	}
 
 	/**
@@ -2476,7 +2430,7 @@ public abstract class GeoTessPosition
 		}
 	}
 
-	public void getWeights(HashMap<Integer, Double> weights, double dkm) throws GeoTessException
+	public void getWeights(Map<Integer, Double> weights, double dkm) throws GeoTessException
 	{
 		if (radialInterpolatorType == InterpolatorType.CUBIC_SPLINE)
 			throw new GeoTessException("\nCannot compute radial coefficients for InterpolatorType.CUBIC_SPLINE");

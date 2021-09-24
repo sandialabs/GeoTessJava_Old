@@ -1,3 +1,35 @@
+/**
+ * Copyright 2009 Sandia Corporation. Under the terms of Contract
+ * DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+ * retains certain rights in this software.
+ * 
+ * BSD Open Source License.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ *    * Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *    * Neither the name of Sandia National Laboratories nor the names of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 package gov.sandia.geotess.extensions.libcorr3d;
 
 import java.io.BufferedInputStream;
@@ -22,6 +54,8 @@ import gov.sandia.geotess.GeoTessUtils;
 import gov.sandia.geotess.Profile;
 import gov.sandia.gmp.util.globals.DataType;
 import gov.sandia.gmp.util.globals.GMTFormat;
+import gov.sandia.gmp.util.globals.Globals;
+import gov.sandia.gmp.util.globals.Site;
 import gov.sandia.gmp.util.numerical.vector.EarthShape;
 
 /**
@@ -78,7 +112,7 @@ public class LibCorr3DModel extends GeoTessModel
 	private String baseModel;
 	private String baseModelVersion;
 	
-	private int formatVersion = 2;
+	private int formatVersion;
 	
 
 	/**
@@ -359,8 +393,8 @@ public class LibCorr3DModel extends GeoTessModel
 					&& !Double.isNaN(lat)
 					&& !Double.isNaN(lon)
 					&& !Double.isNaN(elev))
-				station = new Site(sta, ondate, offdate, lat, lon, elev, Site.STANAME_NA,
-						Site.STATYPE_NA, Site.REFSTA_NA, Site.DNORTH_NA, Site.DEAST_NA);
+				station = new Site(sta, ondate, offdate, lat, lon, elev, staname,
+						statype, refsta, dnorth, deast);
 			
 			return;
 		}
@@ -375,7 +409,12 @@ public class LibCorr3DModel extends GeoTessModel
 		{
 			// Note: ondate and offdate are read/written as epoch times because c++ version
 			// requires it.
-			station = new Site(input);
+			station = new Site(Globals.readString(input), 
+					GMTFormat.getJDate(input.readDouble()), 
+					GMTFormat.getJDate(input.readDouble()), 
+					input.readDouble(), input.readDouble(), input.readDouble(),
+					Globals.readString(input), Globals.readString(input), 
+					Globals.readString(input), input.readDouble(), input.readDouble());
 			
 			String ph = GeoTessUtils.readString(input);
 			String phList = GeoTessUtils.readString(input);
@@ -467,20 +506,23 @@ public class LibCorr3DModel extends GeoTessModel
 		// call super class to write standard model information to binary file.
 		super.writeModelBinary(output, gridFileName);
 
+		if (formatVersion == 0)
+			formatVersion = 2;
+
 		// write 'LibCorr3DModel' and version number
 		GeoTessUtils.writeString(output, this.getClass().getSimpleName());
 		output.writeInt(formatVersion);
 
 		if (formatVersion == 1)
 		{
-			GeoTessUtils.writeString(output, station.sta);
-			GeoTessUtils.writeString(output, station.refsta);
+			GeoTessUtils.writeString(output, station.getSta());
+			GeoTessUtils.writeString(output, station.getRefsta());
 			
-			output.writeDouble(station.lat);
-			output.writeDouble(station.lon);
-			output.writeDouble(-station.elev);
-			output.writeDouble(GMTFormat.getEpochTime((int)station.ondate));
-			output.writeDouble(GMTFormat.getEpochTime((int)station.offdate)+86399.999);
+			output.writeDouble(station.getLat());
+			output.writeDouble(station.getLon());
+			output.writeDouble(-station.getElev());
+			output.writeDouble(GMTFormat.getEpochTime(station.getOndate()));
+			output.writeDouble(GMTFormat.getOffTime(station.getOffdate()));
 			
 			GeoTessUtils.writeString(output, phase);
 			GeoTessUtils.writeString(output, parameters);
@@ -494,7 +536,18 @@ public class LibCorr3DModel extends GeoTessModel
 
 			// Note: ondate and offdate are read/written as epoch times because c++ version
 			// requires it.
-			station.write(output);
+			Globals.writeString(output, station.getSta());
+			output.writeDouble(station.getOntime());
+			output.writeDouble(station.getOfftime());
+			output.writeDouble(station.getLat());
+			output.writeDouble(station.getLon());
+			output.writeDouble(station.getElev());
+			Globals.writeString(output, station.getStaname());
+			Globals.writeString(output, station.getStatype());
+			Globals.writeString(output, station.getRefsta());
+			output.writeDouble(station.getDnorth());
+			output.writeDouble(station.getDeast());
+
 
 			GeoTessUtils.writeString(output, getPhase());
 			GeoTessUtils.writeString(output, getSupportedPhasesString());
@@ -532,7 +585,40 @@ public class LibCorr3DModel extends GeoTessModel
 		{
 			// Note: ondate and offdate are read/written as epoch times because c++ version
 			// requires it.
-			station = new Site(input);
+			station = new Site();
+			
+			line = input.nextLine();
+			station.setSta(line.substring(line.indexOf(":")+1).trim());
+
+			line = input.nextLine();
+			station.setOntime(Double.parseDouble(line.substring(line.indexOf(":")+1).trim()));
+
+			line = input.nextLine();
+			station.setOfftime(Double.parseDouble(line.substring(line.indexOf(":")+1).trim()));
+
+			line = input.nextLine();
+			station.setLat(Double.parseDouble(line.substring(line.indexOf(":")+1).trim()));
+
+			line = input.nextLine();
+			station.setLon(Double.parseDouble(line.substring(line.indexOf(":")+1).trim()));
+
+			line = input.nextLine();
+			station.setElev(Double.parseDouble(line.substring(line.indexOf(":")+1).trim()));
+
+			line = input.nextLine();
+			station.setStaname(line.substring(line.indexOf(":")+1).trim());
+
+			line = input.nextLine();
+			station.setStatype(line.substring(line.indexOf(":")+1).trim());
+
+			line = input.nextLine();
+			station.setRefsta(line.substring(line.indexOf(":")+1).trim());
+
+			line = input.nextLine();
+			station.setDnorth(Double.parseDouble(line.substring(line.indexOf(":")+1).trim()));
+
+			line = input.nextLine();
+			station.setDeast(Double.parseDouble(line.substring(line.indexOf(":")+1).trim()));
 
 			line = input.nextLine(); // skip comment
 			String ph = line.substring(line.indexOf(":")+1).trim();
@@ -660,6 +746,9 @@ public class LibCorr3DModel extends GeoTessModel
 
 		// write the extra data managed by this derived class, which
 		// is stored at the end of the file.
+		
+		if (formatVersion == 0)
+			formatVersion = 2;
 
 		// output 'LibCorr3DModel', followed by version number.
 		output.write(String.format("%s%n%d%n", this.getClass().getSimpleName(), formatVersion));
@@ -673,13 +762,13 @@ public class LibCorr3DModel extends GeoTessModel
 
 			output.write(String.format(
 					"%s %s %1.6f %1.6f %1.4f %1.3f %1.3f%n", 
-					station.sta, 
-					station.refsta, 
-					station.lat, 
-					station.lon,
-					-station.elev,
-					GMTFormat.getEpochTime((int)station.getOndate()),
-					(GMTFormat.getEpochTime((int)station.getOffdate())+86399.999)));
+					station.getSta(), 
+					station.getRefsta(), 
+					station.getLat(), 
+					station.getLon(),
+					-station.getElev(),
+					station.getOntime(),
+					station.getOfftime()));
 
 			output.write(String.format("# phase%n%s%n", phase));
 			output.write(String.format("# parameters%n%s%n", parameters));
@@ -691,8 +780,23 @@ public class LibCorr3DModel extends GeoTessModel
 		{
 			// write version 2
 
-			output.write(station.getString());
-			
+			output.write(String.format("sta:     %s%n"
+					+ "ontime:  %1.3f%n"
+					+ "offtime: %1.3f%n"
+					+ "lat:     %1.6f%n"
+					+ "lon:     %1.6f%n"
+					+ "elev:    %1.4f%n"
+					+ "staname: %s%n"
+					+ "statype: %s%n"
+					+ "refsta:  %s%n"
+					+ "dnorth:  %1.3f%n"
+					+ "deast:   %1.3f%n",
+					station.getSta(), 
+					station.getOntime(), station.getOfftime(), 
+					station.getLat(), station.getLon(), station.getElev(), 
+					station.getStaname(), station.getStatype(), station.getRefsta(), 
+					station.getDnorth(), station.getDeast()));
+
 			output.write(String.format("phase: %s%n", getPhase()));
 
 			output.write(String.format("supported phases: %s%n", getSupportedPhasesString()));
@@ -734,7 +838,17 @@ public class LibCorr3DModel extends GeoTessModel
 	{
 	  StringBuffer buf = new StringBuffer(super.toString());
 	  buf.append(String.format("%nLibCorr3DModel data:%n"
-		  + "%s"
+		  + "sta:     %s%n"
+	      + "ondate:  %d%n"
+	      + "offdate: %d%n"
+	      + "lat:     %1.6f%n"
+	      + "lon:     %1.6f%n"
+	      + "elev:    %1.4f%n"
+	      + "staname: %s%n"
+	      + "statype: %s%n"
+	      + "refsta:  %s%n"
+	      + "dnorth:  %1.3f%n"
+	      + "deast:   %1.3f%n"
 	      + "phase:      %s%n"
 	      + "suportedPhases: %s%n"
 	      + "baseModel:  %s%n"
@@ -742,7 +856,17 @@ public class LibCorr3DModel extends GeoTessModel
 	      + "parameters: %s%n"
 	      + "comments:   %s%n"
 	      + "formatVersion: %d%n",
-	      station.toString(),
+	      station.getSta(), 
+	      station.getOndate(), 
+	      station.getOffdate(), 
+	      station.getLat(), 
+	      station.getLon(), 
+	      station.getElev(), 
+	      station.getStaname(), 
+	      station.getStatype(), 
+	      station.getRefsta(), 
+	      station.getDnorth(), 
+	      station.getDeast(),
 	      phase,
 	      supportedPhases.toString().replace("[", "").replace("]", ""),
 	      baseModel, baseModelVersion, parameters, comments, formatVersion));

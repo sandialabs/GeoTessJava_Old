@@ -1,38 +1,35 @@
-//- ****************************************************************************
-//- 
-//- Copyright 2009 Sandia Corporation. Under the terms of Contract
-//- DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
-//- retains certain rights in this software.
-//- 
-//- BSD Open Source License.
-//- All rights reserved.
-//- 
-//- Redistribution and use in source and binary forms, with or without
-//- modification, are permitted provided that the following conditions are met:
-//- 
-//-    * Redistributions of source code must retain the above copyright notice,
-//-      this list of conditions and the following disclaimer.
-//-    * Redistributions in binary form must reproduce the above copyright
-//-      notice, this list of conditions and the following disclaimer in the
-//-      documentation and/or other materials provided with the distribution.
-//-    * Neither the name of Sandia National Laboratories nor the names of its
-//-      contributors may be used to endorse or promote products derived from
-//-      this software without specific prior written permission.
-//- 
-//- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-//- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-//- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-//- ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-//- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-//- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-//- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-//- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-//- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-//- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-//- POSSIBILITY OF SUCH DAMAGE.
-//-
-//- ****************************************************************************
-
+/**
+ * Copyright 2009 Sandia Corporation. Under the terms of Contract
+ * DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government
+ * retains certain rights in this software.
+ * 
+ * BSD Open Source License.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ *    * Redistributions of source code must retain the above copyright notice,
+ *      this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright
+ *      notice, this list of conditions and the following disclaimer in the
+ *      documentation and/or other materials provided with the distribution.
+ *    * Neither the name of Sandia National Laboratories nor the names of its
+ *      contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 package gov.sandia.geotess;
 
 import java.io.BufferedInputStream;
@@ -1550,7 +1547,7 @@ public class GeoTessModel
 	{
 		GeoTessPosition pos = getGeoTessPosition(InterpolatorType.LINEAR, InterpolatorType.LINEAR);
 		pos.set(layerIndex, location, radius);
-		HashMap<Integer, Double> weights = new HashMap<Integer, Double>();
+		Map<Integer, Double> weights = new HashMap<Integer, Double>();
 		pos.getWeights(weights, 1.);
 		int closestPoint = -1;
 		double maxWeight = -1;
@@ -1631,7 +1628,7 @@ public class GeoTessModel
 			double[] radii, int[] layerIds,
 			InterpolatorType horizontalType,
 			InterpolatorType radialType,
-			HashMap<Integer, Double> weights ) throws GeoTessException
+			Map<Integer, Double> weights ) throws GeoTessException
 	{
 		weights.clear();
 
@@ -1764,7 +1761,7 @@ public class GeoTessModel
 	 */
 	public boolean getWeights(GreatCircle greatCircle, double pointSpacing,
 			double earthRadius, InterpolatorType horizontalType,
-			HashMap<Integer, Double> weights) throws GeoTessException
+			Map<Integer, Double> weights) throws GeoTessException
 	{
 		// the code here is identical to another method with the same name but this method
 		// populates a HashMap<Integer, Double> instead of a HashMapIntegerDouble.
@@ -1907,7 +1904,7 @@ public class GeoTessModel
 	 *         weights in the map will equal the length of the ray path in km.
 	 * @return  the path integral of the specified attribute along the specified rayPath.
 	 */
-	public double getPathIntegral(int attribute, HashMap<Integer, Double> weights) 
+	public double getPathIntegral(int attribute, Map<Integer, Double> weights) 
 	{
 		double integral = 0;
 		if (attribute < 0)
@@ -2035,7 +2032,7 @@ public class GeoTessModel
 	public double getPathIntegral(int attribute, 
 			ArrayList<double[]> rayPath, double[] radii, int[] layerIds,
 			InterpolatorType horizontalType, InterpolatorType radialType,
-			HashMap<Integer, Double> weights) throws GeoTessException
+			Map<Integer, Double> weights) throws GeoTessException
 	{
 		weights.clear();
 
@@ -2244,7 +2241,7 @@ public class GeoTessModel
 	 */
 	public double getPathIntegral2D(int attribute,  
 			GreatCircle rayPath, double pointSpacing, double earthRadius, 
-			InterpolatorType horizontalType, HashMap<Integer, Double> weights) throws GeoTessException
+			InterpolatorType horizontalType, Map<Integer, Double> weights) throws GeoTessException
 	{
 		if (!is2D())
 			throw new GeoTessException("\nCan only apply this method to 2D models.\n");
@@ -2949,26 +2946,16 @@ public class GeoTessModel
 		if (!gridFileName.equals("*"))
 			gridFileName = new File(gridFileName).getName();
 
-		try
-		{
-			long timer = System.nanoTime();
+		long timer = System.nanoTime();
 
-			testTestModelIntegrity();
+		if (outputFile.endsWith(".ascii"))
+			writeModelAscii(outputFile, gridFileName);
+		else
+			writeModelBinary(outputFile, gridFileName);
 
+		metaData.setWriteTimeModel((System.nanoTime() - timer) * 1e-9);
 
-			if (outputFile.endsWith(".ascii"))
-				writeModelAscii(outputFile, gridFileName);
-			else
-				writeModelBinary(outputFile, gridFileName);
-
-			metaData.setWriteTimeModel((System.nanoTime() - timer) * 1e-9);
-
-			metaData.setOutputModelFile(outputFile);
-		}
-		catch (GeoTessException e)
-		{
-			throw new IOException(e);
-		}
+		metaData.setOutputModelFile(outputFile);
 	}
 
 	/**
@@ -3055,33 +3042,24 @@ public class GeoTessModel
 	public void writeModel(String outputFile, File gridFilePath)
 			throws IOException
 	{
-		try
+		long timer = System.currentTimeMillis();
+
+		if (!gridFilePath.exists())
 		{
-			long timer = System.nanoTime();
-
-			testTestModelIntegrity();
-
-			if (!gridFilePath.exists())
-			{
-				File gridDir = gridFilePath.getParentFile();
-				if (gridDir == null) gridDir = new File(".");
-				gridDir.mkdirs();
-				grid.writeGrid(gridFilePath);
-			}
-
-			if (outputFile.endsWith(".ascii"))
-				writeModelAscii(outputFile, gridFilePath.getName());
-			else
-				writeModelBinary(outputFile,  gridFilePath.getName());
-
-			metaData.setWriteTimeModel((System.nanoTime() - timer) * 1e-9);
-
-			metaData.setOutputModelFile(outputFile);
+			File gridDir = gridFilePath.getParentFile();
+			if (gridDir == null) gridDir = new File(".");
+			gridDir.mkdirs();
+			grid.writeGrid(gridFilePath);
 		}
-		catch (GeoTessException e)
-		{
-			throw new IOException(e);
-		}
+
+		if (outputFile.endsWith(".ascii"))
+			writeModelAscii(outputFile, gridFilePath.getName());
+		else
+			writeModelBinary(outputFile,  gridFilePath.getName());
+
+		metaData.setWriteTimeModel((System.currentTimeMillis() - timer) * 1e-3);
+
+		metaData.setOutputModelFile(outputFile);
 	}
 
 	/**
@@ -3378,6 +3356,11 @@ public class GeoTessModel
 	protected void writeModelBinary(DataOutputStream output, String gridFileName)
 			throws IOException
 	{
+		try {
+			testTestModelIntegrity();
+		} catch (GeoTessException e) {
+			throw new IOException(e);
+		}
 		metaData.writeModelBinary(output, grid.getNVertices());
 
 		for (Profile[] profiles : this.profiles)
@@ -3509,6 +3492,12 @@ public class GeoTessModel
 	protected void writeModelAscii(Writer output, String gridFileName)
 			throws IOException
 	{
+		try {
+			testTestModelIntegrity();
+		} catch (GeoTessException e) {
+			throw new IOException(e);
+		}
+
 		metaData.writeModelAscii(output, grid.getNVertices());
 		for (int n = 0; n < grid.getNVertices(); ++n)
 		{
@@ -3647,10 +3636,16 @@ public class GeoTessModel
 			}
 		}
 
+		// ensure that every Data object is of the correct size and data type.
 		for (int p=0; p<getPointMap().size(); ++p)
+		{
 			if (pointMap.getPointData(p).size() != metaData.getNAttributes())
 				throw new GeoTessException(String.format("pointMap.getPointData().size() [%d] != metaData.getNAttributes() [%d] at pointIndex %d",
 						pointMap.getPointData(p).size(), metaData.getNAttributes(), p));
+			if (pointMap.getPointData(p).getDataType() != metaData.getDataType())
+				throw new GeoTessException(String.format("pointMap.getPointData().getDataType() [%s] != metaData.getDataType() [%s] at pointIndex %d",
+						pointMap.getPointData(p).getDataType().toString(), metaData.getDataType().toString(), p));
+		}
 	}
 
 	/**
