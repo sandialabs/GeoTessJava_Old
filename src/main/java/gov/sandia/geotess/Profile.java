@@ -77,6 +77,20 @@ public abstract class Profile
 	{
 	}
 	
+	private static float radiiResolution = 0.001F;
+	
+	/**
+	 * Condition a radius value of type float to have 1 meter resolution
+	 * by returning Math.round(radius/0.001F)*0.001F
+	 * @param radius
+	 * @return
+	 */
+	public static float condition(float radius) {
+		// This was un-implemented because it caused a huge number of geotess tests
+		// to fail.  Still a good idea but no time to fix all the tests.
+		return radius; // Math.round(radius/radiiResolution)*radiiResolution;
+	}
+	
 	public static Profile newProfile(float[] radii, Data[] data) throws GeoTessException
 	{
 		for (int i=1; i<radii.length; ++i)

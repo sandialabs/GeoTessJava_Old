@@ -384,10 +384,10 @@ public class GeoTessExplorer
 			mapLayerBoundary(args);
 		else if (cmd.equalsIgnoreCase("maplayerthickness"))
 			mapLayerThickness(args);
-		else if (cmd.equalsIgnoreCase("triangleEdges"))
-			triangleEdges(args);
-		else if (cmd.equalsIgnoreCase("gridToKML"))
-			gridToKML(args);
+//		else if (cmd.equalsIgnoreCase("triangleEdges"))
+//			triangleEdges(args);
+//		else if (cmd.equalsIgnoreCase("gridToKML"))
+//			gridToKML(args);
 		else if (cmd.equalsIgnoreCase("values3DBlock"))
 			values3DBlock(args);
 		else if (cmd.equalsIgnoreCase("function"))
@@ -947,7 +947,7 @@ public class GeoTessExplorer
 		if (GeoTessModel.isGeoTessModel(inputFile))
 		{
 			model = GeoTessModel.getGeoTessModel(inputFile, pathToGridDir);
-			grid = model.getGrid();
+			grid = model.getGridRotated();
 			// tessid is really a layer index.  convert it to tessid.
 			if (tessId >= 0)
 				tessId = model.getMetaData().getTessellation(tessId);
@@ -2144,7 +2144,7 @@ public class GeoTessExplorer
 		pos.set(lat, lon, 1000);
 
 		int vertex = pos.getIndexOfClosestVertex();
-		double earthRadius = model.getEarthShape().getEarthRadius(model.getGrid().getVertex(vertex));
+		double earthRadius = model.getEarthShape().getEarthRadius(model.getVertex(vertex));
 
 		lastLayer = Math.min(lastLayer, model.getMetaData().getNLayers() - 1);
 
@@ -2388,63 +2388,63 @@ public class GeoTessExplorer
 			}
 	}
 
-	/**
-	 * Output to standard out the edges of all of the triangles that reside on the 
-	 * top level of the specified tessellation. 
-	 * @deprecated use extractGrid instead. 
-	 * @param args
-	 *            <ol>
-	 *            <li>triangleEdges
-	 *            <li>input model or grid file name
-	 *            <li>relative path to grid directory, otherwise ignored
-	 *            <li>layerIndex if 2 is a model, tessId if 2 is a grid
-	 *            </ol>
-	 * @throws Exception
-	 */
-	public void triangleEdges(String[] args) throws Exception
-	{
-		int nmin = 4;
-		if (args.length != nmin)
-		{
-			System.out .println(
-					String.format("%n%nMust supply %d arguments:%n"
-							+ "  1  --  triangleEdges%n"
-							+ "  2  --  input model or grid file name%n"
-							+ "  3  --  relative path to grid directory, otherwise ignored%n"
-							+ "  4  --  layerIndex if 2 is a model, tessId if 2 is a grid"
-							, nmin));
-			System.exit(0);
-		}
-
-		int arg = 1;
-
-		File inputFile = new File(args[arg++]);
-		String gridDirectory = args[arg++];
-		int tessId=-1;
-
-		EarthShape earthShape = EarthShape.WGS84_RCONST;
-		GeoTessGrid grid = null;
-		if (GeoTessModel.isGeoTessModel(inputFile))
-		{
-			GeoTessModel model = GeoTessModel.getGeoTessModel(inputFile, gridDirectory);
-			tessId = model.getMetaData().getTessellation(Integer.parseInt(args[arg++]));
-			grid = model.getGrid();
-			earthShape = model.getEarthShape();
-		}
-		else
-		{
-			grid = new GeoTessGrid().loadGrid(inputFile);
-			tessId = Integer.parseInt(args[arg++]);
-		}
-
-		ArrayList<int[]> edges = grid.getEdges(tessId);
-		for (int[] edge : edges)
-			System.out.printf("%1.6f %1.6f %1.6f %1.6f%n", 
-					earthShape.getLatDegrees(grid.getVertex(edge[0])),
-					earthShape.getLonDegrees(grid.getVertex(edge[0])),
-					earthShape.getLatDegrees(grid.getVertex(edge[1])),
-					earthShape.getLonDegrees(grid.getVertex(edge[1])));
-	}
+//	/**
+//	 * Output to standard out the edges of all of the triangles that reside on the 
+//	 * top level of the specified tessellation. 
+//	 * @deprecated use extractGrid instead. 
+//	 * @param args
+//	 *            <ol>
+//	 *            <li>triangleEdges
+//	 *            <li>input model or grid file name
+//	 *            <li>relative path to grid directory, otherwise ignored
+//	 *            <li>layerIndex if 2 is a model, tessId if 2 is a grid
+//	 *            </ol>
+//	 * @throws Exception
+//	 */
+//	public void triangleEdges(String[] args) throws Exception
+//	{
+//		int nmin = 4;
+//		if (args.length != nmin)
+//		{
+//			System.out .println(
+//					String.format("%n%nMust supply %d arguments:%n"
+//							+ "  1  --  triangleEdges%n"
+//							+ "  2  --  input model or grid file name%n"
+//							+ "  3  --  relative path to grid directory, otherwise ignored%n"
+//							+ "  4  --  layerIndex if 2 is a model, tessId if 2 is a grid"
+//							, nmin));
+//			System.exit(0);
+//		}
+//
+//		int arg = 1;
+//
+//		File inputFile = new File(args[arg++]);
+//		String gridDirectory = args[arg++];
+//		int tessId=-1;
+//
+//		EarthShape earthShape = EarthShape.WGS84_RCONST;
+//		GeoTessGrid grid = null;
+//		if (GeoTessModel.isGeoTessModel(inputFile))
+//		{
+//			GeoTessModel model = GeoTessModel.getGeoTessModel(inputFile, gridDirectory);
+//			tessId = model.getMetaData().getTessellation(Integer.parseInt(args[arg++]));
+//			grid = model.getGrid();
+//			earthShape = model.getEarthShape();
+//		}
+//		else
+//		{
+//			grid = new GeoTessGrid().loadGrid(inputFile);
+//			tessId = Integer.parseInt(args[arg++]);
+//		}
+//
+//		ArrayList<int[]> edges = grid.getEdges(tessId);
+//		for (int[] edge : edges)
+//			System.out.printf("%1.6f %1.6f %1.6f %1.6f%n", 
+//					earthShape.getLatDegrees(grid.getVertex(edge[0])),
+//					earthShape.getLonDegrees(grid.getVertex(edge[0])),
+//					earthShape.getLatDegrees(grid.getVertex(edge[1])),
+//					earthShape.getLonDegrees(grid.getVertex(edge[1])));
+//	}
 
 	/**
 	 * Output to standard out a 4D array of values representing attribute values

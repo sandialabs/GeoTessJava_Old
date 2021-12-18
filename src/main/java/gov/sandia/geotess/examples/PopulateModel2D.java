@@ -154,7 +154,7 @@ public class PopulateModel2D
 			{
 				// retrieve the unit vector corresponding to the i'th vertex of
 				// the grid.
-				double[] vertex = model.getGrid().getVertex(vtx);
+				double[] vertex = model.getVertex(vtx);
 
 				// compute the distance from the vertex to station ANMO.
 				float distance = (float) VectorUnit.angleDegrees(anmo, vertex);
@@ -236,8 +236,8 @@ public class PopulateModel2D
 				System.out.printf(
 						"%6d %10.4f %10.4f %10.6f%n",
 						vtx,
-						VectorGeo.getLatDegrees(model.getGrid().getVertex(vtx)),
-						VectorGeo.getLonDegrees(model.getGrid().getVertex(vtx)), 
+						VectorGeo.getLatDegrees(model.getVertex(vtx)),
+						VectorGeo.getLonDegrees(model.getVertex(vtx)), 
 						coef[j]);
 			}
 			System.out.printf("%nSimple example completed successfully%n%n");

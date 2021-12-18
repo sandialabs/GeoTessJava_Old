@@ -94,12 +94,25 @@ public abstract class GeoTessPosition
 	/**
 	 * The earth-centered unit vector that corresponds to current position.
 	 */
-	protected double[] unitVector;
+	private double[] unitVector;
 
 	/**
 	 * Radius of current position, in km.
 	 */
 	protected double radius;
+
+	/**
+	 * depthSpecified is set in all the various set(...) methods and used in updateRadialCoefficients. 
+	 * Given a triangle and the three Profiles at the corners where we are to compute radial 
+	 * coefficients, the coefficients can be computed at a constant radius or a constant depth.
+	 * If the user specified a depth in the set(...) method then use constant depth.  
+	 * If user specified a radius in the set(...) method, then use constant radius.
+	 * In the setTop and setBottom methods, if the depth of the interface is < 1000 km
+	 * then constant depth is used.  If depth of the interface it > 1000 km then constant
+	 * radius is used.
+	 * The difference is small but is important when values at an interface are requested.
+	 */
+	protected boolean depthSpecified;
 
 	/**
 	 * The earth-centered unit vector that corresponds to current position.
@@ -220,23 +233,6 @@ public abstract class GeoTessPosition
 	protected GeoTessModel model;
 
 	/**
-	 * A reference to the GeoTessGrid.
-	 */
-	protected GeoTessGrid grid;
-
-	/**
-	 * Get references to grid objects that will be used a lot in the triangle
-	 * walking algorithm.
-	 */
-	protected Profile[][] profiles;
-	protected double[][] gridVertices;
-	protected int[][] gridTriangles;
-	protected Edge[][] gridEdges;
-	protected int[] gridDescendants;
-	protected int[] layerTessIds;
-	protected int nLayers;
-
-	/**
 	 * This is the value returned when an invalid interpolation result is
 	 * obtained.
 	 */
@@ -342,20 +338,10 @@ public abstract class GeoTessPosition
 
 		this.model = model;
 		this.radialInterpolatorType = radialType;
-		layerTessIds = model.getMetaData().getLayerTessIds();
-		nLayers = model.getMetaData().getNLayers();
-
-		layerRadii = new ArrayListDouble(nLayers + 1);
-		for (int i = 0; i <= nLayers; ++i)
+		
+		layerRadii = new ArrayListDouble(model.getMetaData().getNLayers() + 1);
+		for (int i = 0; i <= model.getMetaData().getNLayers(); ++i)
 			layerRadii.add(-1);
-
-		profiles = model.getProfiles();
-
-		this.grid = model.getGrid();
-		gridVertices = grid.getVertices();
-		gridTriangles = grid.getTriangles();
-		gridDescendants = grid.getDescendants();
-		gridEdges = grid.getEdgeList();
 
 		radiusOutOfRangeAllowed = true;
 		radialIndexes = new ArrayList<ArrayListInt>(8);
@@ -367,7 +353,7 @@ public abstract class GeoTessPosition
 
 		tessid = -1;
 
-		int ntess = grid.getNTessellations();
+		int ntess = model.getGrid().getNTessellations();
 
 		this.triangle = new int[ntess];
 		Arrays.fill(this.triangle, -1);
@@ -401,15 +387,6 @@ public abstract class GeoTessPosition
   	 errorValue = gtp.errorValue;
 
   	 model = gtp.model;
-  	 profiles = gtp.profiles;
-
-  	 grid = gtp.grid;
-  	 gridDescendants = gtp.gridDescendants;
-  	 gridEdges = gtp.gridEdges;
-  	 gridTriangles = gtp.gridTriangles;
-  	 gridVertices = gtp.gridVertices;
-  	 layerTessIds = gtp.layerTessIds;
-  	 nLayers = gtp.nLayers;
 
   	 layerId = gtp.layerId;
   	 radialCoeffUpdateLayerId = gtp.radialCoeffUpdateLayerId;
@@ -445,6 +422,7 @@ public abstract class GeoTessPosition
   	 tessLevels = gtp.tessLevels.clone();
   	 
   	 radius = gtp.radius;
+  	 depthSpecified = gtp.depthSpecified;
   	 threeDVector = gtp.threeDVector.clone();
   	 unitVector = gtp.unitVector.clone();
    }
@@ -452,10 +430,11 @@ public abstract class GeoTessPosition
 	/**
 	 * Update the 2D vertices and horizontal interpolation coefficients.
 	 * Different types of interpolators will handle this differently.
+	 * @param u 
 	 * 
 	 * @throws GeoTessException
 	 */
-	abstract protected void update2D(int tessid) throws GeoTessException;
+	abstract protected void update2D(int tessid, double[] u) throws GeoTessException;
 
 	/**
 	 * Retrieve the type of interpolation that this GeoTessPosition object is
@@ -531,13 +510,13 @@ public abstract class GeoTessPosition
 			// get the profile for the ith vertex at the interpolation layer id.
 			// retrieve all radial indexes and their interpolation coefficients
 			// that participate in the interpolation.
-			Profile p = profiles[v[i]][layerId];
+			Profile p = model.getProfile(v[i], layerId);
 			ArrayListInt    radii =  radialIndexes.get(i);
 			ArrayListDouble coeff =  radialCoefficients.get(i);
 			
 			// compute the gradients if the profile gradient array is not defined
 			if (!p.isGradientSet(attribute))
-				p.computeGradients(model, attribute, model.getGrid().getVertex(v[i]),
+				p.computeGradients(model, attribute, model.getVertex(v[i]),
 													 layerId, reciprocal);
 			
 			// loop over each radial contributor and add the gradient contribution
@@ -570,7 +549,7 @@ public abstract class GeoTessPosition
 		if (getLayerThickness(majorLayerIndex) < 1e-9) return;
 
 		//**T
-		int tid = layerTessIds[majorLayerIndex];
+		int tid = model.getMetaData().getLayerTessIds()[majorLayerIndex];
 		checkTessellation(tid);
 		
 		if (radialInterpolatorType == InterpolatorType.CUBIC_SPLINE)
@@ -589,13 +568,13 @@ public abstract class GeoTessPosition
 			// get the profile for the ith vertex at the interpolation layer id.
 			// retrieve all radial indexes and their interpolation coefficients
 			// that participate in the interpolation.
-			Profile p = profiles[v[i]][majorLayerIndex];
+			Profile p = model.getProfiles()[v[i]][majorLayerIndex];
 			ArrayListInt    radii =  radialIndexes.get(i);
 			ArrayListDouble coeff =  radialCoefficients.get(i);
 			
 			// compute the gradients if the profile gradient array is not defined
 			if (!p.isGradientSet(attribute))
-				p.computeGradients(model, attribute, model.getGrid().getVertex(v[i]),
+				p.computeGradients(model, attribute, model.getVertex(v[i]),
 													 majorLayerIndex, reciprocal);
 			
 			// loop over each radial contributor and add the gradient contribution
@@ -620,12 +599,12 @@ public abstract class GeoTessPosition
 		double value = 0;
 		if (radialInterpolatorType == InterpolatorType.CUBIC_SPLINE)
 			for (int i = 0; i < vertices.get(tessid).size(); ++i)
-				value += profiles[v[i]][layerId].getValue(radialInterpolatorType, attribute, radius, radiusOutOfRangeAllowed) * h[i];
+				value += model.getProfile(v[i], layerId).getValue(radialInterpolatorType, attribute, radius, radiusOutOfRangeAllowed) * h[i];
 		else
 		{
 			updateRadialCoefficients(layerId, tessid);
 			for (int i = 0; i < vertices.get(tessid).size(); ++i)
-				value += profiles[v[i]][layerId].getValue(radialIndexes.get(i), radialCoefficients.get(i), attribute) * h[i];
+				value += model.getProfile(v[i], layerId).getValue(radialIndexes.get(i), radialCoefficients.get(i), attribute) * h[i];
 		}
 
 		return Double.isNaN(value) ? getErrorValue() : value;
@@ -642,7 +621,7 @@ public abstract class GeoTessPosition
 	public double getValue(int attribute, int layer) throws GeoTessException
 	{
 		//**T
-		int tid = layerTessIds[layer];
+		int tid = model.getMetaData().getLayerTessIds()[layer];
 		checkTessellation(tid);
 		
 		int[] v = vertices.get(tid).getArray();
@@ -651,12 +630,12 @@ public abstract class GeoTessPosition
 		double value = 0;
 		if (radialInterpolatorType == InterpolatorType.CUBIC_SPLINE)
 			for (int i = 0; i < vertices.get(tid).size(); ++i)
-				value += profiles[v[i]][layer].getValue(radialInterpolatorType, attribute, radius, radiusOutOfRangeAllowed) * h[i];
+				value += model.getProfile(v[i], layer).getValue(radialInterpolatorType, attribute, radius, radiusOutOfRangeAllowed) * h[i];
 		else
 		{
 			updateRadialCoefficients(layer, tid);
 			for (int i = 0; i < vertices.get(tid).size(); ++i)
-				value += profiles[v[i]][layer].getValue(radialIndexes.get(i), radialCoefficients.get(i), attribute) * h[i];
+				value += model.getProfile(v[i], layer).getValue(radialIndexes.get(i), radialCoefficients.get(i), attribute) * h[i];
 		}
 
 		return Double.isNaN(value) ? getErrorValue() : value;
@@ -678,14 +657,14 @@ public abstract class GeoTessPosition
 			return 0.;
 
 		//**T
-		int tid = layerTessIds[majorLayerIndex];
+		int tid = model.getMetaData().getLayerTessIds()[majorLayerIndex];
 		checkTessellation(tid);
 
 		int[] v = vertices.get(tid).getArray();
 		double[] h = hCoefficients.get(tid).getArray();
 		double value = 0;
 		for (int i = 0; i < vertices.get(tid).size(); ++i)
-		  value += profiles[v[i]][majorLayerIndex].getValueTop(attribute) * h[i];
+		  value += model.getProfile(v[i], majorLayerIndex).getValueTop(attribute) * h[i];
     return value;		
 	}
 
@@ -705,14 +684,14 @@ public abstract class GeoTessPosition
 			return 0.;
 
 		//**T
-		int tid = layerTessIds[majorLayerIndex];
+		int tid = model.getMetaData().getLayerTessIds()[majorLayerIndex];
 		checkTessellation(tid);
 
 		int[] v = vertices.get(tid).getArray();
 		double[] h = hCoefficients.get(tid).getArray();
 		double value = 0;
 		for (int i = 0; i < vertices.get(tid).size(); ++i)
-		  value += profiles[v[i]][majorLayerIndex].getValueBottom(attribute) * h[i];
+		  value += model.getProfile(v[i], majorLayerIndex).getValueBottom(attribute) * h[i];
     return value;		
 	}
 
@@ -749,14 +728,14 @@ public abstract class GeoTessPosition
 	public void getWeights(Map<Integer, Double> weights, double dkm, double radius, int majorLayerIndex, InterpolatorType radialInterpType) throws GeoTessException
 	{
 		//**T
-		int tid = layerTessIds[majorLayerIndex];
+		int tid = model.getMetaData().getLayerTessIds()[majorLayerIndex];
 		checkTessellation(tid);
 
 		int[] v = vertices.get(tid).getArray();
 		double[] h = hCoefficients.get(tid).getArray();
 
 		for (int i = 0; i < vertices.get(tid).size(); ++i)
-			profiles[v[i]][majorLayerIndex].getWeights(weights, dkm, radius, h[i], radialInterpType);
+			model.getProfile(v[i], majorLayerIndex).getWeights(weights, dkm, radius, h[i], radialInterpType);
 	}
 
 	/**
@@ -824,7 +803,7 @@ public abstract class GeoTessPosition
 		normal[0] = normal[1] = normal[2] = 0.0;
 
 		//**T
-		int tid = layerTessIds[layr];
+		int tid = model.getMetaData().getLayerTessIds()[layr];
 		checkTessellation(tid);
 		
 		int[] v = vertices.get(tid).getArray();
@@ -835,7 +814,7 @@ public abstract class GeoTessPosition
 		{
 			// get the vertex/layer profile and get its normal ... if null calculate
 			// the normal for this profile
-			Profile p = profiles[v[i]][layr];
+			Profile p = model.getProfile(v[i], layr);
 			double[] layrNormal = p.getLayerNormal();
 			if (layrNormal == null)
 				layrNormal = model.getLayerNormal(v[i], layr);
@@ -871,46 +850,31 @@ public abstract class GeoTessPosition
 	 */
 	public boolean setModel(GeoTessModel newModel) throws GeoTessException
 	{
-		if (!newModel.getGrid().getGridID().equals(this.grid.getGridID()))
+		if (!newModel.getGrid().getGridID().equals(model.getGrid().getGridID()))
 			throw new GeoTessException(
 					"Specified model and current model use different grids.");
 
 		this.model = newModel;
-		profiles = model.getProfiles();
 		
-		layerTessIds = model.getMetaData().getLayerTessIds();
-		nLayers = model.getMetaData().getNLayers();
-
 		double r = this.radius;
 
 		layerRadii.clear();
 		this.radius = -1.;
-		for (int i = 0; i <= nLayers; ++i)
+		for (int i = 0; i <= model.getMetaData().getNLayers(); ++i)
 			layerRadii.add(-1);
 
 		setRadius(layerId, r);
 		
+		this.depthSpecified = false;
 		return true;
 	}
 
 	/**
 	 * Set the interpolation point to specified latitude and and longitude in
-	 * degrees and depth in km below the surface of the WGS84 ellipsoid. This method will perform a
-	 * walking triangle search for the triangle in which the specified position
-	 * is located and compute the associated interpolation coefficients.
-	 * <p>
-	 * This method is pretty expensive compared to the other version of
-	 * setPosition where the position is specified as a unit vector and a
-	 * radius.
-	 * <p>
-	 * Assumes WGS84 ellipsoid.
-	 * 
-	 * @param lat
-	 *            in degrees.
-	 * @param lon
-	 *            in degrees.
-	 * @param depth
-	 *            below the surface of the WGS84 ellipsoid in km.
+	 * degrees and depth in km below the surface of the ellipsoid. 
+	 * @param lat in degrees.
+	 * @param lon in degrees.
+	 * @param depth below the surface of the ellipsoid in km.
 	 * @return reference to this GeoTessPosition object.
 	 * @throws GeoTessException
 	 */
@@ -921,6 +885,7 @@ public abstract class GeoTessPosition
 		double newRadius = model.getEarthShape().getEarthRadius(uVector) - depth;
 		set(uVector, newRadius);
 		
+		this.depthSpecified = true;		
 		return this;
 	}
 
@@ -939,7 +904,7 @@ public abstract class GeoTessPosition
 	 */
 	public GeoTessPosition set(double[] uVector, double newRadius) throws GeoTessException
 	{
-		updatePosition2D(nLayers-1, uVector);
+		updatePosition2D(model.getMetaData().getNLayers()-1, uVector);
 
 		int lid = getLayerId(newRadius);
 
@@ -947,21 +912,14 @@ public abstract class GeoTessPosition
 		
 		updateRadius(lid, newRadius);
 
+		this.depthSpecified = false;
+		
 		return this;
 	}
 
 	/**
 	 * Set the interpolation point to specified latitude and and longitude in
-	 * degrees and depth in km below the surface of the WGS84 ellipsoid. This method will perform a
-	 * walking triangle search for the triangle in which the specified position
-	 * is located and compute the associated interpolation coefficients.
-	 * <p>
-	 * This method is pretty expensive compared to the other version of
-	 * setPosition where the position is specified as a unit vector and a
-	 * radius.
-	 * <p>
-	 * Assumes WGS84 ellipsoid.
-	 * 
+	 * degrees and depth in km below the surface of the ellipsoid. 
 	 * @param layerId
 	 *            the index of the layer of the model in which the position is
 	 *            located.
@@ -970,7 +928,7 @@ public abstract class GeoTessPosition
 	 * @param lon
 	 *            in degrees.
 	 * @param depth
-	 *            below the surface of the WGS84 ellipsoid in km.
+	 *            below the surface of the ellipsoid in km.
 	 * @return reference to this GeoTessPosition object.
 	 * @throws GeoTessException
 	 */
@@ -985,7 +943,7 @@ public abstract class GeoTessPosition
 			updatePosition2D(layerId, uVector);
 			updateRadius(layerId, model.getEarthShape().getEarthRadius(uVector) - depth);
 		}
-		
+		this.depthSpecified = true;
 		return this;
 	}
 
@@ -1017,6 +975,29 @@ public abstract class GeoTessPosition
 				updateRadius(layerId, radius);
 		}
 		
+		this.depthSpecified = false;
+		
+		return this;
+	}
+
+	/**
+	 * Set the 2D position to lat, lon and depth of the top of the
+	 * specified layer.
+	 * 
+	 * @param layerId
+	 *            the index of the layer of the model in which the position is
+	 *            located.
+	 * @param lat in degrees
+	 * @param lon in degrees
+	 * @return reference to this GeoTessPosition object.
+	 * @throws GeoTessException
+	 */
+	public GeoTessPosition setTop(int layerId, double lat, double lon) throws GeoTessException
+	{
+		
+		updatePosition2D(layerId, model.getEarthShape().getVectorDegrees(lat, lon));
+		updateRadius(layerId, getRadiusTop(layerId));
+		depthSpecified = radius > 5300;
 		return this;
 	}
 
@@ -1037,7 +1018,28 @@ public abstract class GeoTessPosition
 	{
 		updatePosition2D(layerId, uVector);
 		updateRadius(layerId, getRadiusTop(layerId));
+		depthSpecified = radius > 5300;
+		return this;
+	}
+
+	/**
+	 * Set the 2D position to lat, lon and depth of the bottom of the
+	 * specified layer.
+	 * 
+	 * @param layerId
+	 *            the index of the layer of the model in which the position is
+	 *            located.
+	 * @param lat in degrees
+	 * @param lon in degrees
+	 * @return reference to this GeoTessPosition object.
+	 * @throws GeoTessException
+	 */
+	public GeoTessPosition setBottom(int layerId, double lat, double lon) throws GeoTessException
+	{
 		
+		updatePosition2D(layerId, model.getEarthShape().getVectorDegrees(lat, lon));
+		updateRadius(layerId, getRadiusBottom(layerId));
+		depthSpecified = radius > 5300;
 		return this;
 	}
 
@@ -1059,7 +1061,7 @@ public abstract class GeoTessPosition
 	{
 		updatePosition2D(layerId, uVector);
 		updateRadius(layerId, getRadiusBottom(layerId));
-		
+		depthSpecified = radius > 5300;
 		return this;
 	}
 
@@ -1081,7 +1083,9 @@ public abstract class GeoTessPosition
 			throw new GeoTessException(
 					"geographic position has not been specified.");
 		
-		return updateRadius(layerId, radius);
+		updateRadius(layerId, radius);
+		this.depthSpecified = false;
+		return this;
 	}
 
 	/**
@@ -1099,7 +1103,9 @@ public abstract class GeoTessPosition
 			throw new GeoTessException(
 					"geographic position has not been specified.");
 
-		return updateRadius(getLayerId(newRadius), newRadius);
+		updateRadius(getLayerId(newRadius), newRadius);		
+		this.depthSpecified = false;
+		return this;
 	}
 
 	/**
@@ -1116,20 +1122,24 @@ public abstract class GeoTessPosition
 	 */
 	public GeoTessPosition setDepth(int layerId, double depth) throws GeoTessException
 	{
-		return setRadius(layerId, getEarthRadius()-depth);
+		setRadius(layerId, getEarthRadius()-depth);
+		this.depthSpecified = true;
+		return this;
 	}
 
 	/**
 	 * Change the current layer and/or depth without changing the geographic
 	 * position.
 	 * 
-	 * @param depth depth in km below surface of WGS84 ellipsoid
+	 * @param depth depth in km below surface of ellipsoid
 	 * @return reference to this GeoTessPosition object.
 	 * @throws GeoTessException
 	 */
 	public GeoTessPosition setDepth(double depth) throws GeoTessException
 	{
-		return setRadius(getEarthRadius()-depth);
+		setRadius(getEarthRadius()-depth);
+		this.depthSpecified = true;
+		return this;
 	}
 
 	/**
@@ -1147,10 +1157,10 @@ public abstract class GeoTessPosition
 		if (tessid < 0)
 			throw new GeoTessException(
 					"geographic position has not been specified.");
-		tessid = layerTessIds[layerId];
+		tessid = model.getMetaData().getLayerTessIds()[layerId];
 		checkTessellation(tessid);
 		updateRadius(layerId, getRadiusTop(layerId));
-		
+		depthSpecified = radius > 5300;
 		return this;
 	}
 
@@ -1169,10 +1179,10 @@ public abstract class GeoTessPosition
 		if (tessid < 0)
 			throw new GeoTessException(
 					"geographic position has not been specified.");
-		tessid = layerTessIds[layerId];
+		tessid = model.getMetaData().getLayerTessIds()[layerId];
 		checkTessellation(tessid);
 		updateRadius(layerId, getRadiusBottom(layerId));
-		
+		depthSpecified = radius > 5300;
 		return this;
 	}
 
@@ -1189,7 +1199,7 @@ public abstract class GeoTessPosition
 	private void updatePosition2D(int newLayerId, double[] uVector)
 			throws GeoTessException
 	{
-		tessid = layerTessIds[newLayerId];
+		tessid = model.getMetaData().getLayerTessIds()[newLayerId];
 
 		if (triangle[tessid] < 0 || unitVector[0] != uVector[0]
 				|| unitVector[1] != uVector[1] || unitVector[2] != uVector[2])
@@ -1209,7 +1219,7 @@ public abstract class GeoTessPosition
 			if (triangle[tessid] < 0
 					|| GeoTessUtils.dot(uVector, unitVector) < 0.961261696)
 			{
-				triangle[tessid] = grid.getTriangle(tessid, 0, 0);
+				triangle[tessid] = model.getGrid().getTriangle(tessid, 0, 0);
 				tessLevels[tessid] = 0;
 			}
 
@@ -1220,15 +1230,10 @@ public abstract class GeoTessPosition
 			threeDVector[1] = unitVector[1] * radius;
 			threeDVector[2] = unitVector[2] * radius;
 			
-			// perform walking triangle algorith, which will set
+			// perform walking triangle algorithm, which will set
 			// triangle[tessid], linearCoefficients[tessid] and tessLevels[tessid]
 			getContainingTriangle(tessid);
 
-			// determine vertices and coefficients for interpolation in
-			// geographic dimensions. This is an abstract method so the
-			// results depend on the interpolator type.
-			update2D(tessid);
-			
 			// nullify previously computed earth radius.
 			earthRadius = -1;
 			
@@ -1248,7 +1253,7 @@ public abstract class GeoTessPosition
 	}
 
 	/**
-	 * Ensure that vertices and coefficients have been computed for the
+	 * Ensure that vertices and horizontal coefficients have been computed for the
 	 * specified tessellation.
 	 * 
 	 * <p>
@@ -1256,9 +1261,10 @@ public abstract class GeoTessPosition
 	 * tessellation has already been computed. What can happen however, is that
 	 * layerId and unitVector are changed with a call to setPosition2D(layerid,
 	 * uVector). That will update all the information about vertices and
-	 * coefficients for the tessid that supports layerid but will nullify that
+	 * horizontal coefficients for the tessid that supports layerid but will nullify that
 	 * information for other tessids. This method can be called to ensure that
-	 * vertices and coefficients are up-to-date for any tessid.
+	 * vertices and horizontal coefficients are up-to-date for any tessid.
+	 * <br>Radial coefficients are not altered by this method.
 	 * 
 	 * @param tessid
 	 * @throws GeoTessException
@@ -1268,14 +1274,14 @@ public abstract class GeoTessPosition
 		if (triangle[tessid] < 0)
 		{
 			tessLevels[tessid] = 0;
-			triangle[tessid] = grid.getTriangle(tessid, 0, 0);
+			triangle[tessid] = model.getGrid().getTriangle(tessid, 0, 0);
 			getContainingTriangle(tessid);
-			update2D(tessid);
 		}
 	}
 
 	/**
 	 * Update the radius, layerId and tessid of this position.
+	 * <br>Radial coefficients are cleared by this method.
 	 * 
 	 * @param layerId
 	 * @param radius
@@ -1285,6 +1291,7 @@ public abstract class GeoTessPosition
 	private GeoTessPosition updateRadius(int layerId, double radius)
 			throws GeoTessException
 	{
+		clearRadialCoefficients();
 		if (this.radius < 0. || radius != this.radius || layerId != this.layerId)
 		{
 			this.radius = radius;
@@ -1295,16 +1302,16 @@ public abstract class GeoTessPosition
 			this.layerId = layerId;
 			this.radialCoeffUpdateLayerId = layerId;
 
-			tessid = layerTessIds[layerId];
+			tessid = model.getMetaData().getLayerTessIds()[layerId];
 
 			checkTessellation(tessid);
-
-			clearRadialCoefficients();
-
 		}
 		return this;
 	}
 	
+	/**
+	 * Clear the radial indexes and coefficients.
+	 */
 	private void clearRadialCoefficients()
 	{
 		for (int i=0; i<radialIndexes.size(); ++i)
@@ -1313,33 +1320,6 @@ public abstract class GeoTessPosition
 			radialCoefficients.get(i).clear();
 		}		
 	}
-//
-//	/**
-//	 * Update the radial interpolation indexes and coefficients. 
-//	 * This method should be called whenever the position is modified.  
-//	 * Assumes that the proper tessid, layerId and radius are in effect.
-//	 * 
-//	 */
-//	private void updateRadialCoefficients() 
-//	{
-//		// make sure dimensions of radialIndexes and radialCoefficients
-//		// are at least as big as the number of vertices involved in interpolation.
-//		while (radialIndexes.size() < vertices.get(tessid).size())
-//		{
-//			radialIndexes.add(new ArrayListInt(2));
-//			radialCoefficients.add(new ArrayListDouble(2));			
-//		}
-//		
-//		if (radialIndexes.get(0).size() == 0)
-//		{
-//			int[] v = vertices.get(tessid).getArray();
-//			for (int i = 0; i < vertices.get(tessid).size(); ++i)
-//				profiles[v[i]][layerId].setInterpolationCoefficients(radialInterpolatorType, 
-//						radialIndexes.get(i), radialCoefficients.get(i), 
-//						radius, radiusOutOfRangeAllowed);
-//		}
-//	}
-
 	/**
 	 * Update the radial interpolation indexes and coefficients for the input
 	 * layer (this may or may not be layerid). This method should be called
@@ -1355,14 +1335,20 @@ public abstract class GeoTessPosition
 			radialCoefficients.add(new ArrayListDouble(2));			
 		}
 		
+		double r = radius;
+		double depth = depthSpecified ? getEarthRadius()-radius : Double.NaN;
+		
 		if (radialCoeffUpdateLayerId != layer) clearRadialCoefficients();
 		if (radialIndexes.get(0).size() == 0)
 		{
 			int[] v = vertices.get(tid).getArray();
 			for (int i = 0; i < vertices.get(tid).size(); ++i)
-				profiles[v[i]][layer].setInterpolationCoefficients(radialInterpolatorType, 
-						radialIndexes.get(i), radialCoefficients.get(i), 
-						radius, radiusOutOfRangeAllowed);
+			{
+				if (depthSpecified)
+					r = model.getEarthShape().getEarthRadius(model.getVertex(v[i]))-depth;
+				model.getProfile(v[i], layer).setInterpolationCoefficients(radialInterpolatorType, 
+						radialIndexes.get(i), radialCoefficients.get(i),  r, radiusOutOfRangeAllowed);
+			}
 			radialCoeffUpdateLayerId = layer;
 		}
 	}
@@ -1377,23 +1363,29 @@ public abstract class GeoTessPosition
 	 * the triangle identified by this method will reside either on
 	 * x.maxTessLevel, or the largest tessellation level of the tessellation,
 	 * whichever is smaller.
+	 * @throws GeoTessException 
 	 */
-	private void getContainingTriangle(int tessid)
+	private void getContainingTriangle(int tessid) throws GeoTessException
 	{
 		int t = triangle[tessid];
 		int tessLevel = tessLevels[tessid];
 		double[] c = linearCoefficients.get(tessid).getArray();
 		int maxTess = maxTessLevel[tessid];
-
+		Edge[][] gridEdges = model.getGrid().getEdgeList();
+		int[] gridDescendants = model.getGrid().getDescendants();
+		double[] u = this.unitVector;
+		if (model.getMetaData().getEulerModelToGrid() != null)
+			u = VectorUnit.eulerRotation(u, model.getMetaData().getEulerModelToGrid());
+		
 		while (true)
 		{
-			c[0] = GeoTessUtils.dot(gridEdges[t][0].normal, unitVector);
+			c[0] = GeoTessUtils.dot(gridEdges[t][0].normal, u);
 			if (c[0] > -1e-15)
 			{
-				c[1] = GeoTessUtils.dot(gridEdges[t][1].normal, unitVector);
+				c[1] = GeoTessUtils.dot(gridEdges[t][1].normal, u);
 				if (c[1] > -1e-15)
 				{
-					c[2] = GeoTessUtils.dot(gridEdges[t][2].normal, unitVector);
+					c[2] = GeoTessUtils.dot(gridEdges[t][2].normal, u);
 					if (c[2] > -1e-15)
 					{
 						if (c[2] > -1e-15)
@@ -1410,6 +1402,12 @@ public abstract class GeoTessPosition
 								c[2] /= sum;
 								triangle[tessid] = t;
 								tessLevels[tessid] = tessLevel;
+								
+								// determine vertices and coefficients for interpolation in
+								// geographic dimensions. This is an abstract method so the
+								// results depend on the interpolator type.
+								update2D(tessid, u);
+								
 								return;
 							}
 							else
@@ -1452,7 +1450,7 @@ public abstract class GeoTessPosition
 	{
 		int i;
 		int bot = -1;
-		int top = nLayers-1;
+		int top = model.getMetaData().getNLayers()-1;
 		while (top - bot > 1)
 		{
 			i = (top + bot) / 2;
@@ -1462,7 +1460,7 @@ public abstract class GeoTessPosition
 				top = i;
 		}
 
-		if (top == nLayers-1)
+		if (top == model.getMetaData().getNLayers()-1)
 			top = previousLayer(top, 1e-6);
 
 		return top;
@@ -1506,11 +1504,13 @@ public abstract class GeoTessPosition
 	{
 		if (layerRadii.get(layer + 1) < 0)
 		{
-			int tid = layerTessIds[layer];
+			int[] layerTessIds = model.getMetaData().getLayerTessIds();
+			
+			int tid = model.getMetaData().getLayerTessIds()[layer];
 			
 			checkTessellation(tid);
 			
-			if (layer < nLayers-1 && layerTessIds[layer+1] != tid)
+			if (layer < model.getMetaData().getNLayers()-1 && layerTessIds[layer+1] != tid)
 			{
 				// the next layer above the current layer is in a different
 				// multi-level tessellation.  The containing triangle in the next layer
@@ -1530,7 +1530,7 @@ public abstract class GeoTessPosition
 			double[] h = hCoefficients.get(tid).getArray();
 			double r=0.;
 			for (int i = 0; i < vertices.get(tid).size(); ++i)
-				r += profiles[v[i]][layer].getRadiusTop() * h[i];
+				r += model.getProfile(v[i], layer).getRadiusTop() * h[i];
 		
 			layerRadii.set(layer + 1, r);
 		}
@@ -1551,6 +1551,8 @@ public abstract class GeoTessPosition
 	{
 		if (layerRadii.get(layer) < 0)
 		{
+			int[] layerTessIds = model.getMetaData().getLayerTessIds();
+			
 			int tid = layerTessIds[layer];
 			
 			checkTessellation(tid);
@@ -1575,7 +1577,7 @@ public abstract class GeoTessPosition
 			double[] h = hCoefficients.get(tid).getArray();
 			double r=0.;
 			for (int i = 0; i < vertices.get(tid).size(); ++i)
-				r += profiles[v[i]][layer].getRadiusBottom() * h[i];
+				r += model.getProfile(v[i], layer).getRadiusBottom() * h[i];
 		
 			layerRadii.set(layer, r);
 		}
@@ -1593,23 +1595,25 @@ public abstract class GeoTessPosition
 	 */
 	private int biggerTriangle(int t1, int t2)
 	{
+		GeoTessGrid grid = model.getGrid();
 		int[] tv = grid.getTriangleVertexIndexes(t1);
-		double dot1 = GeoTessUtils.dot(grid.getVertex(tv[0]), grid.getVertex(tv[1]))
-				+ GeoTessUtils.dot(grid.getVertex(tv[1]), grid.getVertex(tv[2]))
-				+ GeoTessUtils.dot(grid.getVertex(tv[2]), grid.getVertex(tv[0]));
+		double[][] v = new double[][] { model.getVertex(tv[0]), model.getVertex(tv[1]), 
+			model.getVertex(tv[2])};
+		double dot1 = GeoTessUtils.dot(v[0], v[1]) + GeoTessUtils.dot(v[1], v[2])
+				+ GeoTessUtils.dot(v[2], v[0]);
 
 		tv = grid.getTriangleVertexIndexes(t2);
-		double dot2 = GeoTessUtils.dot(grid.getVertex(tv[0]), grid.getVertex(tv[1]))
-				+ GeoTessUtils.dot(grid.getVertex(tv[1]), grid.getVertex(tv[2]))
-				+ GeoTessUtils.dot(grid.getVertex(tv[2]), grid.getVertex(tv[0]));
+		v = new double[][] { model.getVertex(tv[0]), model.getVertex(tv[1]), 
+			model.getVertex(tv[2])};
+		double dot2 = GeoTessUtils.dot(v[0], v[1]) + GeoTessUtils.dot(v[1], v[2])
+		+ GeoTessUtils.dot(v[2], v[0]);
 		
 		return dot2 > dot1 ? t1 : t2;
 
 	}
 
 	/**
-	 * Retrieve the radius of the Earth at this position, in km. Assumes WGS84
-	 * ellipsoid.
+	 * Retrieve the radius of the Earth at this position, in km. 
 	 * 
 	 * @return the radius of the Earth at this position, in km.
 	 */
@@ -1700,7 +1704,7 @@ public abstract class GeoTessPosition
 	 */
 	public int getNLayers()
 	{
-		return nLayers;
+		return model.getMetaData().getNLayers();
 	}
 
 	/**
@@ -1769,7 +1773,7 @@ public abstract class GeoTessPosition
 		// used to return the index (0..2) of interpolation vertex with
 		// highest coefficient.  Now returns the unit vector of the 
 		// vertex with highest coefficient.
-		return grid.getVertex(getIndexOfClosestVertex());
+		return model.getVertex(getIndexOfClosestVertex());
 	}
 
 	/**
@@ -1796,8 +1800,8 @@ public abstract class GeoTessPosition
 	public void setMaxTessLevel(int layerId, int maxTessLevel)
 			throws GeoTessException
 	{
-		this.maxTessLevel[layerTessIds[layerId]] = maxTessLevel;
-		triangle[layerTessIds[layerId]] = -1;
+		this.maxTessLevel[model.getMetaData().getLayerTessIds()[layerId]] = maxTessLevel;
+		triangle[model.getMetaData().getLayerTessIds()[layerId]] = -1;
 		if (tessid >= 0)
 			checkTessellation(tessid);
 	}
@@ -1813,7 +1817,7 @@ public abstract class GeoTessPosition
 	 */
 	public int getMaxTessLevel(int layerId)
 	{
-		return maxTessLevel[layerTessIds[layerId]];
+		return maxTessLevel[model.getMetaData().getLayerTessIds()[layerId]];
 	}
 
 	/**
@@ -1890,7 +1894,7 @@ public abstract class GeoTessPosition
 
 	/**
 	 * Retrieve an interpolated value of the depth of the top of the current
-	 * layer. Assumes WGS84 ellipsoid.
+	 * layer. 
 	 * 
 	 * @return interpolated value of the depth of the top of the current layer.
 	 * @throws GeoTessException
@@ -1902,7 +1906,7 @@ public abstract class GeoTessPosition
 
 	/**
 	 * Retrieve an interpolated value of the depth of the bottom of the current
-	 * layer. Assumes WGS84 ellipsoid.
+	 * layer. 
 	 * 
 	 * @return interpolated value of the depth of the bottom of the current
 	 *         layer.
@@ -1915,7 +1919,7 @@ public abstract class GeoTessPosition
 
 	/**
 	 * Retrieve an interpolated value of the depth of the top of the current
-	 * layer. Assumes WGS84 ellipsoid.
+	 * layer. 
 	 * 
 	 * @param layer
 	 * @return interpolated value of the depth of the top of the current layer.
@@ -1928,7 +1932,7 @@ public abstract class GeoTessPosition
 
 	/**
 	 * Retrieve an interpolated value of the depth of the bottom of the current
-	 * layer. Assumes WGS84 ellipsoid.
+	 * layer. 
 	 * 
 	 * @param layer
 	 * @return interpolated value of the depth of the bottom of the current
@@ -1943,8 +1947,7 @@ public abstract class GeoTessPosition
 	/**
 	 * Retrieve the thickness of specified layer, in km.
 	 * 
-	 * @param layer
-	 *            layer index
+	 * @param layer layer index
 	 * @return the thickness of specified layer, in km.
 	 * @throws GeoTessException
 	 */
@@ -1975,9 +1978,9 @@ public abstract class GeoTessPosition
 	 */
 	public double[] getLayerRadii() throws GeoTessException
 	{
-		double[] layerRadii = new double[nLayers+1];
+		double[] layerRadii = new double[getNLayers()+1];
 		layerRadii[0] = getRadiusBottom(0);
-		for (int i=0; i<nLayers; ++i)
+		for (int i=0; i<getNLayers(); ++i)
 			layerRadii[i+1] = getRadiusTop(i);
 		return layerRadii;
 	}
@@ -1995,9 +1998,6 @@ public abstract class GeoTessPosition
 
 	/**
 	 * Retrieve the depth of the current position in km. 
-	 * This is the depth that corresponds to the radius that was specified in the 
-	 * most recent call to one of the set() methods.
-	 * Assumes WGS84 ellipsoid.
 	 * 
 	 * @return the depth of the current position in km.
 	 */
@@ -2058,7 +2058,6 @@ public abstract class GeoTessPosition
 	 * radius specified in most recent call to a set() method
 	 * was outside the range of the specified layer, then
 	 * the depth of the top or bottom of the layer is returned.
-	 * Assumes WGS84 ellipsoid.
 	 * 
 	 * @return the depth of the current position in km.
 	 * @throws GeoTessException 
@@ -2082,7 +2081,7 @@ public abstract class GeoTessPosition
 	       throws GeoTessException
 	{
 		for (;;)
-			if (++majorLayerIndex >= nLayers
+			if (++majorLayerIndex >= getNLayers()
 					|| getLayerThickness(majorLayerIndex) >= minThick)
 				return majorLayerIndex;
 	}
@@ -2148,7 +2147,7 @@ public abstract class GeoTessPosition
 	 */
 	public boolean isAboveModel() throws GeoTessException
 	{
-		return radius > getRadiusTop(nLayers-1);
+		return radius > getRadiusTop(getNLayers()-1);
 	}
 
 	/**
@@ -2159,7 +2158,7 @@ public abstract class GeoTessPosition
 	 */
 	public double getSurfaceRadius() throws GeoTessException
 	{
-		return getRadiusTop(nLayers - 1);
+		return getRadiusTop(getNLayers() - 1);
 	}
 
 	/**
@@ -2170,7 +2169,7 @@ public abstract class GeoTessPosition
 	 */
 	public double getSurfaceDepth() throws GeoTessException
 	{
-		return getDepthTop(nLayers - 1);
+		return getDepthTop(getNLayers() - 1);
 	}
 
 	@Override
@@ -2194,8 +2193,8 @@ public abstract class GeoTessPosition
 
 		for (int i = 0; i < vertices.get(tessid).size(); ++i)
 			buf.append(String.format("%6d %s %10.6f %7.3f%n", v[i],
-					model.getEarthShape().getLatLonString(grid.getVertex(v[i])), h[i],
-					GeoTessUtils.angleDegrees(unitVector, grid.getVertex(v[i]))));
+					model.getEarthShape().getLatLonString(model.getVertex(v[i])), h[i],
+					GeoTessUtils.angleDegrees(unitVector, model.getVertex(v[i]))));
 
 		buf.append(String.format("%n"));
 		return buf.toString();
@@ -2295,6 +2294,7 @@ public abstract class GeoTessPosition
 	 */
 	public int getLayerId(double radius) throws GeoTessException
 	{
+		int nLayers = model.getMetaData().getNLayers();
 		for (int i = 0; i < nLayers; ++i)
 			if (radius <= getRadiusTop(i))
 				return i;
@@ -2371,7 +2371,7 @@ public abstract class GeoTessPosition
 
 		for (int i = 0; i < vertices.get(tessid).size(); ++i)
 		{
-			p = profiles[v[i]][layerId];
+			p = model.getProfile(v[i], layerId);
 			ri = radialIndexes.get(i).getArray();
 			ci = radialCoefficients.get(i).getArray();
 			for (int j=0; j<radialIndexes.get(i).size(); ++j)
@@ -2422,7 +2422,7 @@ public abstract class GeoTessPosition
 
 		for (int i = 0; i < vertices.get(tessid).size(); ++i)
 		{
-			p = profiles[v[i]][layerId];
+			p = model.getProfile(v[i], layerId);
 			ri = radialIndexes.get(i).getArray();
 			ci = radialCoefficients.get(i).getArray();
 			for (int j=0; j<radialIndexes.get(i).size(); ++j)
@@ -2449,7 +2449,7 @@ public abstract class GeoTessPosition
 		updateRadialCoefficients(layerId, tessid);
 		for (int i = 0; i < vertices.get(tessid).size(); ++i)
 		{
-			p = profiles[v[i]][layerId];
+			p = model.getProfile(v[i], layerId);
 			ri = radialIndexes.get(i).getArray();
 			ci = radialCoefficients.get(i).getArray();
 			for (int j=0; j<radialIndexes.get(i).size(); ++j)
@@ -2480,7 +2480,7 @@ public abstract class GeoTessPosition
 		updateRadialCoefficients(layerId, tessid);
 		for (int i = 0; i < vertices.get(tessid).size(); ++i)
 		{
-			p = profiles[v[i]][layerId];
+			p = model.getProfile(v[i], layerId);
 			ri = radialIndexes.get(i).getArray();
 			ci = radialCoefficients.get(i).getArray();
 			for (int j=0; j<radialIndexes.get(i).size(); ++j)

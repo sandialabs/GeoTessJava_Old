@@ -827,7 +827,7 @@ public class GeoTessModelUtils
 			int firstLayer, int lastLayer)
 	{
 		StringBuffer buf = new StringBuffer();
-		double[] u = model.getGrid().getVertex(vertex);
+		double[] u = model.getVertex(vertex);
 		buf.append(String.format(
 				"Profile for vertex %d  lat,lon: %s   Earth radius (%s): %1.3f %n%n",
 				vertex,
@@ -851,7 +851,7 @@ public class GeoTessModelUtils
 		StringBuffer buf = new StringBuffer();
 		Profile p = model.getProfile(vertex, layer);
 		double re = model.getEarthShape().getEarthRadius(
-				model.getGrid().getVertex(vertex));
+				model.getVertex(vertex));
 		for (int i = p.getNRadii() - 1; i >= 0; --i)
 		{
 			buf.append(String.format("%6s %8.3f",layer, re - p.getRadius(i)));
@@ -1507,26 +1507,23 @@ public class GeoTessModelUtils
 
 		GeoTessMetaData md = newModel.getMetaData();
 
-		//newModel.getGrid().setGridInputFile(null);
-
 		md.setAttributes(attributeName, attributeUnits);
 
 		GeoTessPosition p0 = m0.getGeoTessPosition(horizontalType, radialType);
 		GeoTessPosition p1 = m1.getGeoTessPosition(horizontalType, radialType);
 
 		PointMap pointMap = newModel.getPointMap();
-		double[][] vertices = newModel.getGrid().getVertices();
-		int vertex, layer;
 		double v1, v0, v;
 
 		for (int pointIndex = 0; pointIndex < newModel.getNPoints(); ++pointIndex)
 		{
-			vertex = pointMap.getVertexIndex(pointIndex);
-			layer = pointMap.getLayerIndex(pointIndex);
-
+			int layer = pointMap.getLayerIndex(pointIndex);
+			double[] vertex = pointMap.getVertex(pointIndex);
+			double radius = pointMap.getPointRadius(pointIndex);
+			
 			// set the interpolation positions in the two input models.
-			p0.set(layer, vertices[vertex], pointMap.getPointRadius(pointIndex));
-			p1.set(layer, vertices[vertex], pointMap.getPointRadius(pointIndex));
+			p0.set(layer, vertex, radius);
+			p1.set(layer, vertex, radius);
 
 			// get attribute values from the two input models
 			v0 = p0.getValue(attribute0);
@@ -1697,13 +1694,15 @@ public class GeoTessModelUtils
 		DataOutputStream output = new DataOutputStream(
 				new BufferedOutputStream(new FileOutputStream(
 						new File(fileName))));
+		
+		GeoTessGrid grid = model.getGridRotated();
 
-		int tessid = layerId < 0 ? model.getGrid().getNTessellations() - 1
+		int tessid = layerId < 0 ? grid.getNTessellations() - 1
 				: model.getMetaData().getTessellation(layerId);
 
-		int level = model.getGrid().getNLevels(tessid) - 1;
+		int level = grid.getNLevels(tessid) - 1;
 
-		int[] vertices = vtkGrid(model.getGrid(), tessid, level, output);
+		int[] vertices = vtkGrid(grid, tessid, level, output);
 
 		output.writeBytes(String.format("POINT_DATA %d%n", vertices.length));
 
@@ -1723,11 +1722,9 @@ public class GeoTessModelUtils
 
 				for (int i = 0; i < vertices.length; ++i)
 				{
-					pos.set(layerId,
-							model.getGrid().getVertex(vertices[i]),
-							model.getEarthShape().getEarthRadius(
-									model.getGrid().getVertex(vertices[i]))
-							- depths[z]);
+					double[] v = model.getVertex(vertices[i]);
+					pos.set(layerId, v,
+							model.getEarthShape().getEarthRadius(vertices[i]) - depths[z]);
 
 					output.writeFloat((float) (reciprocal ? 1 / pos
 							.getValue(attributes[a]) : pos
@@ -1787,10 +1784,12 @@ public class GeoTessModelUtils
 
 		int tessid = model.getMetaData()
 				.getTessellation(model.getNLayers() - 1);
+		
+		GeoTessGrid grid = model.getGridRotated();
 
-		int level = model.getGrid().getNLevels(tessid) - 1;
+		int level = grid.getNLevels(tessid) - 1;
 
-		int[] vertices = vtkGrid(model.getGrid(), tessid, level, output);
+		int[] vertices = vtkGrid(grid, tessid, level, output);
 
 		double[] vertex;
 
@@ -1809,7 +1808,7 @@ public class GeoTessModelUtils
 
 			for (int i = 0; i < vertices.length; ++i)
 			{
-				vertex = model.getGrid().getVertex(vertices[i]);
+				vertex = grid.getVertex(vertices[i]);
 				pos.setTop(model.getNLayers() - 1, vertex);
 
 				output.writeFloat((float) (sign * (layer < 0 ? pos
@@ -1855,10 +1854,12 @@ public class GeoTessModelUtils
 
 		int tessid = model.getMetaData()
 				.getTessellation(model.getNLayers() - 1);
+		
+		GeoTessGrid grid = model.getGridRotated();
 
-		int level = model.getGrid().getNLevels(tessid) - 1;
+		int level = grid.getNLevels(tessid) - 1;
 
-		int[] vertices = vtkGrid(model.getGrid(), tessid, level, output);
+		int[] vertices = vtkGrid(grid, tessid, level, output);
 
 		double[] vertex;
 
@@ -1871,7 +1872,7 @@ public class GeoTessModelUtils
 
 		for (int i = 0; i < vertices.length; ++i)
 		{
-			vertex = model.getGrid().getVertex(vertices[i]);
+			vertex = grid.getVertex(vertices[i]);
 			pos.setTop(model.getNLayers() - 1, vertex);
 
 			output.writeFloat((float) (pos.getRadiusTop(lastLayer) - pos
@@ -1920,9 +1921,11 @@ public class GeoTessModelUtils
 
 		int tessid = model.getMetaData().getTessellation(layerId);
 
-		int level = model.getGrid().getNLevels(tessid) - 1;
+		GeoTessGrid grid = model.getGridRotated();
 
-		int[] vertices = vtkGrid(model.getGrid(), tessid, level, output);
+		int level = grid.getNLevels(tessid) - 1;
+
+		int[] vertices = vtkGrid(grid, tessid, level, output);
 
 		output.writeBytes(String.format("POINT_DATA %d%n", vertices.length));
 
@@ -1987,13 +1990,16 @@ public class GeoTessModelUtils
 
 		int tessid = model.getMetaData().getTessellation(layerId);
 
-		if (level >= model.getGrid().getNLevels(tessid)) level = model.getGrid().getNLevels(tessid)-1;
+		GeoTessGrid grid = model.getGridRotated();
+
+		if (level >= grid.getNLevels(tessid)) 
+			level = grid.getNLevels(tessid)-1;
 
 		DataOutputStream output = new DataOutputStream(
 				new BufferedOutputStream(new FileOutputStream(
 						outputFile)));
 
-		int[] vertices = vtkGrid(model.getGrid(), tessid, level, output);
+		int[] vertices = vtkGrid(grid, tessid, level, output);
 
 		output.writeBytes(String.format("POINT_DATA %d%n", vertices.length));
 
@@ -2040,11 +2046,10 @@ public class GeoTessModelUtils
 	 * @throws GeoTessException
 	 */
 	public static void vtkTriangleValues(GeoTessModel model, String fileName,
-			int tessId, float[] triangleValues) throws IOException,
-	GeoTessException
+			int tessId, float[] triangleValues) throws IOException, GeoTessException
 	{
-		vtkTriangleValues(model, fileName, tessId, model.getGrid()
-				.getLastLevel(tessId), triangleValues);
+		vtkTriangleValues(model, fileName, tessId, model.getGrid().getLastLevel(tessId), 
+				triangleValues);
 	}
 
 	/**
@@ -2363,7 +2368,7 @@ public class GeoTessModelUtils
 				Profile p = model.getProfile(vertices[i], layerId);
 				double r, r0 = p.getRadiusBottom();
 				double dr = ((double) p.getRadiusTop() - r0) / (nr - 1);
-				double[] vertex = model.getGrid().getVertex(vertices[i]);
+				double[] vertex = model.getVertex(vertices[i]);
 				for (int j = 0; j < nr; ++j)
 				{
 					r = r0 + j * dr;
@@ -3261,6 +3266,46 @@ public class GeoTessModelUtils
 			throw new IOException(e);
 		}
 	}
+	
+	/**
+	 * Generate a map of the size of the triangles in a grid. This size of the
+	 * triangles is the edgelength of an equilateral triangle with the same
+	 * area, in degrees.
+	 * <p>
+	 * Also generates another file that contains the outlines of the continents
+	 * plotted on the same map projection. The file is located in the same
+	 * directory as the outputFile, with the name 'continents_centerLon_%d.vtk'
+	 * where %d is replaced with the longitude of the center of the map rounded
+	 * to the nearest degree.
+	 * 
+	 * @param grid
+	 *            the grid to be plotted.
+	 * @param outputFile
+	 *            the name of the file to which to write the output. Must end
+	 *            with extension 'vtk'.
+	 * @param centerLonDegrees
+	 *            the longitude of the center of the map in degrees.
+	 * @throws IOException
+	 * @throws GeoTessException
+	 */
+	static public void vtkRobinsonTriangleSize(GeoTessGrid grid,
+			String outputFile, double centerLonDegrees)
+					throws Exception
+	{
+		if (grid.getNTessellations() == 1 && !outputFile.contains("%d"))
+			vtkRobinsonTriangleSize(grid, new File(outputFile), centerLonDegrees, 0);
+		else
+		{
+			if (!outputFile.contains("%d"))
+				throw new Exception("outputFile must contain substring '%d', which will "
+						+ "be replaced with the tessellation index");
+			for (int tessid=0; tessid < grid.getNTessellations(); ++tessid)
+			{
+				vtkRobinsonTriangleSize(grid, new File(String.format(outputFile, tessid)), 
+						centerLonDegrees, tessid);
+			}
+		}
+	}
 
 	/**
 	 * Generate a map of the size of the triangles in a grid. This size of the
@@ -3292,6 +3337,9 @@ public class GeoTessModelUtils
 		if (!outputFile.getName().endsWith(".vtk"))
 			throw new IOException("outputFile " + outputFile
 					+ " must end with .vtk");
+		
+		if (outputFile.getName().contains("%d"))
+			outputFile = new File(String.format(outputFile.getAbsolutePath(), tessId));
 
 		int level = grid.getNLevels(tessId) - 1;
 
@@ -3319,7 +3367,7 @@ public class GeoTessModelUtils
 		ArrayList<Point> vertices = new ArrayList<Point>(grid.getNVertices());
 		ArrayList<int[]> iCells = new ArrayList<int[]>(grid.getNTriangles(
 				tessId, level));
-
+		
 		DataOutputStream output = new DataOutputStream(
 				new BufferedOutputStream(new FileOutputStream(outputFile)));
 
@@ -5001,9 +5049,11 @@ public class GeoTessModelUtils
 		int tessid = model.getMetaData()
 				.getTessellation(model.getNLayers() - 1);
 
-		int level = model.getGrid().getNLevels(tessid) - 1;
+		GeoTessGrid grid = model.getGridRotated();
 
-		int[] vertices = vtkGrid(model.getGrid(), tessid, level, output);
+		int level = grid.getNLevels(tessid) - 1;
+
+		int[] vertices = vtkGrid(grid, tessid, level, output);
 
 		output.writeBytes(String.format("POINT_DATA %d%n", vertices.length));
 
@@ -5133,9 +5183,9 @@ public class GeoTessModelUtils
 
 	public static void vtkNPoints(GeoTessModel model, int layer, File vtkFile) throws Exception
 	{
-		GeoTessGrid grid = model.getGrid(); 
+		GeoTessGrid grid = model.getGridRotated(); 
 
-		ArrayList<VTKCell> cells = new ArrayList<>(model.getGrid().getNTriangles()); 
+		ArrayList<VTKCell> cells = new ArrayList<>(grid.getNTriangles()); 
 		int tessId= model.getMetaData().getTessellation(layer); 
 		int level = grid.getNLevels(tessId)-1; 
 		for (int t=grid.getFirstTriangle(tessId, level); t <= grid.getLastTriangle(tessId, level); ++t) 
@@ -5149,8 +5199,6 @@ public class GeoTessModelUtils
 		VTKDataSet.write(vtkFile, 
 				grid.getVertices(), cells.toArray(new VTKCell[cells.size()]), 
 				new String[] {"npoints"}, data); 
-
-
 	}
 
 	public static void vtkNPoints(GeoTessModel model, File vtkDir, String vtkFileName) throws Exception

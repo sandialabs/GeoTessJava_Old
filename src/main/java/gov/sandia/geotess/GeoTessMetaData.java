@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -47,7 +48,9 @@ import java.util.Scanner;
 
 import gov.sandia.gmp.util.containers.arraylist.ArrayListInt;
 import gov.sandia.gmp.util.globals.DataType;
+import gov.sandia.gmp.util.numerical.matrix.Matrix;
 import gov.sandia.gmp.util.numerical.vector.EarthShape;
+import gov.sandia.gmp.util.numerical.vector.VectorUnit;
 
 /**
  * GeoTessMetaData stores basic information about a GeoTessModel. Each
@@ -59,16 +62,16 @@ import gov.sandia.gmp.util.numerical.vector.EarthShape;
  */
 public class GeoTessMetaData
 {
-	
+
 	private LinkedHashMap<String, String> properties;
-	
+
 	/**
 	 * The format version number of the input model file.
 	 */
 	private int modelFileFormat;
-	
-	private final int defaultModelFileFormat = 2;
-	
+
+	private final int defaultModelFileFormat = 3;
+
 	/**
 	 * A description of the contents of the model.
 	 */
@@ -103,7 +106,7 @@ public class GeoTessMetaData
 	 * associated with their storage index, are stored here.
 	 */
 	private AttributeDataDefinitions nodeAttributes = new AttributeDataDefinitions();
-	
+
 	/**
 	 * Applications should obtain the value of nVertices from the GeoTessGrid
 	 * object.  This copy is obtained from the input files during read operations
@@ -131,14 +134,14 @@ public class GeoTessMetaData
 	 * not been written to a file.
 	 */
 	private double writeTimeModel = -1;
-	
+
 	/**
 	 * The name of the file from which the grid was loaded.  Not the 
 	 * whole file path, just the name.  If the grid was loaded from the same
 	 * file as the model, return "*";
 	 */
 	private String gridInputFileName;
-	
+
 	/**
 	 * If true grid reuse is turned on for the model using this meta data.
 	 */
@@ -148,13 +151,13 @@ public class GeoTessMetaData
 	 * Name and version number of the software that generated this model.
 	 */
 	private String modelSoftwareVersion;
-	
+
 	/**
 	 * The date when this model was generated. Not necessarily the same
 	 * as the date that the model file was copied or translated.
 	 */
 	private String modelGenerationDate = new Date().toString();
-	
+
 	/**
 	 * When called upon to create GradientCalculator object used to compute
 	 * attribute field gradients, this is the size of the small tetrahedron used
@@ -169,7 +172,46 @@ public class GeoTessMetaData
 	 * is applied to the shared facet normals.
 	 */
 	private boolean layerNormalAreaWeight = false;
-	
+
+	/**
+	 * Angles that are being used to rotate
+	 * unit vectors from grid to model coordinates, in degrees.
+	 * Returns null if no grid rotations are being applied.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul>
+	 * */
+	private double[] eulerRotationAngles;
+
+	/**
+	 * The Euler Rotation Matrix to use to rotate
+	 * unit vectors from grid to model coordinates.  
+	 * Equals null if no grid rotations are being applied.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul>
+	 */
+	private double[][] eulerGridToModel;
+
+	/**
+	 * The Euler Rotation Matrix to use to rotate
+	 * unit vectors from model to grid coordinates.  
+	 * Equals null if no grid rotations are being applied.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul>
+	 */
+	private double[][] eulerModelToGrid;
+
 	/**
 	 * Default constructor.  
 	 * 
@@ -197,8 +239,9 @@ public class GeoTessMetaData
 	 * Copy constructor.  Make deep copies of all the values
 	 * in md.  Values are copied from md to this.
 	 * @param md the other GeoTessMetaData object.
+	 * @throws IOException 
 	 */
-	public GeoTessMetaData(GeoTessMetaData md)
+	public GeoTessMetaData(GeoTessMetaData md) 
 	{
 		this();
 		this.properties = new LinkedHashMap<>(md.properties);
@@ -220,7 +263,9 @@ public class GeoTessMetaData
 		this.tetSize = md.tetSize;
 		this.layerNormalAreaWeight = md.layerNormalAreaWeight;
 		this.gridInputFileName = md.gridInputFileName;
-}
+		md.setEulerRotationAngles(this.eulerRotationAngles);
+
+	}
 
 	/**
 	 * Sets the model class name.
@@ -267,19 +312,8 @@ public class GeoTessMetaData
 		{
 			GeoTessUtils.writeString(output, modelClassName);
 
-			// make sure required properties are up-to-date with all parameters
-			// supported by modelFileFormat 3.  If modelFileFormat is > 3,
-			// all the properties read from the input file will still be in 
-			// properties map and will be written out right here.
-			properties.put("modelDescription", getDescription());
-			properties.put("modelSoftwareVersion", getModelSoftwareVersion());
-			properties.put("modelGenerationDate", getModelGenerationDate());
-			properties.put("earthShape", getEarthShape().toString());
-			properties.put("attributeNames", getAttributeNamesString());
-			properties.put("attributeUnits", getAttributeUnitsString());
-			properties.put("dataType", getDataType().toString());
-			properties.put("layerNames", getLayerNamesString());
-
+			updateProperties();
+			
 			output.writeInt(properties.size());
 			for (Entry<String, String> entry : properties.entrySet())
 			{
@@ -314,79 +348,67 @@ public class GeoTessMetaData
 			output.writeInt(getTessellation(i));
 	}
 
-  /**
-   * Writes this GeoTessMetaData information to an ASCII file.
-   * The file is neither opened nor closed by this method.
-   * 
-   * @param output    Writer
-   * @param nVertices The number of grid vertices stored by this model.
-   * @throws IOException
-   */
-  protected void writeModelAscii(Writer output, int nVertices) throws IOException
-  {
-	  // write string that identifies this file as a GeoTessModel file.
-	  output.write("GEOTESSMODEL" + GeoTessUtils.NL);
+	/**
+	 * Writes this GeoTessMetaData information to an ASCII file.
+	 * The file is neither opened nor closed by this method.
+	 * 
+	 * @param output    Writer
+	 * @param nVertices The number of grid vertices stored by this model.
+	 * @throws IOException
+	 */
+	protected void writeModelAscii(Writer output, int nVertices) throws IOException
+	{
+		// write string that identifies this file as a GeoTessModel file.
+		output.write("GEOTESSMODEL" + GeoTessUtils.NL);
 
-	  // write the modelFileFormat for the data part of the grid.
-	  // This will equal the value read from the input model or the 
-	  // value specified by a call to setModelFileFormat(i).
-	  output.write(String.format("%d%n", modelFileFormat));
+		// write the modelFileFormat for the data part of the grid.
+		// This will equal the value read from the input model or the 
+		// value specified by a call to setModelFileFormat(i).
+		output.write(String.format("%d%n", modelFileFormat));
 
-	  // modelFileFormat 3 added the modelClassName
-	  // modelFileFormat 2 added the EarthShape
-	  // modelFileFormat 1 had everything else.
+		// modelFileFormat 3 added the modelClassName
+		// modelFileFormat 2 added the EarthShape
+		// modelFileFormat 1 had everything else.
 
-	  if (modelFileFormat >= 3)
-	  {
-		  output.write(modelClassName + GeoTessUtils.NL);
+		if (modelFileFormat >= 3)
+		{
+			output.write(modelClassName + GeoTessUtils.NL);
 
-		  // make sure properties are up-to-date with all parameters
-		  // supported by modelFileFormat 3.  If modelFileFormat is > 3,
-		  // all the properties read from the input file will still be in 
-		  // properties map and will be written out right here.
-		  properties.put("modelDescription", getDescription());
-		  properties.put("modelSoftwareVersion", getModelSoftwareVersion());
-		  properties.put("modelGenerationDate", getModelGenerationDate());
-		  properties.put("earthShape", getEarthShape().toString());
-		  properties.put("attributeNames", getAttributeNamesString());
-		  properties.put("attributeUnits", getAttributeUnitsString());
-		  properties.put("dataType", getDataType().toString());
-		  properties.put("layerNames", getLayerNamesString());
+			updateProperties();
+			for (Entry<String, String> entry : properties.entrySet())
+				output.write(String.format("%s = %s%n", entry.getKey(), 
+						entry.getValue().replaceAll("\n", "<NEWLINE>")));
 
-		  for (Entry<String, String> entry : properties.entrySet())
-			  output.write(String.format("%s = %s%n", entry.getKey(), 
-					  entry.getValue().replaceAll("\n", "<NEWLINE>")));
-		  
-		  output.write("\n");
-	  }
-	  else if (modelFileFormat <= 2)
-	  {
-		  output.write(getModelSoftwareVersion() + GeoTessUtils.NL);
-		  output.write(getModelGenerationDate() + GeoTessUtils.NL);
+			output.write("\n");
+		}
+		else if (modelFileFormat <= 2)
+		{
+			output.write(getModelSoftwareVersion() + GeoTessUtils.NL);
+			output.write(getModelGenerationDate() + GeoTessUtils.NL);
 
-		  if (modelFileFormat == 2)
-			  output.write(getEarthShape().toString() + GeoTessUtils.NL);
+			if (modelFileFormat == 2)
+				output.write(getEarthShape().toString() + GeoTessUtils.NL);
 
-		  output.write(String.format(
-				  "<model_description>%n%s%n</model_description>%n",
-				  getDescription()));
+			output.write(String.format(
+					"<model_description>%n%s%n</model_description>%n",
+					getDescription()));
 
-		  getNodeAttributes().write(output);
-		  output.write(String.format(getModelLayerScannerHeader(),
-				  getModelLayerString()));
+			getNodeAttributes().write(output);
+			output.write(String.format(getModelLayerScannerHeader(),
+					getModelLayerString()));
 
-		  if (getDataType() == DataType.CUSTOM)
-			  output.write(String.format("%s%n", getCustomDataType().getDataTypeString()));
-		  else
-			  output.write(String.format("%s%n", getDataType().toString()));
+			if (getDataType() == DataType.CUSTOM)
+				output.write(String.format("%s%n", getCustomDataType().getDataTypeString()));
+			else
+				output.write(String.format("%s%n", getDataType().toString()));
 
-	  }
-	  output.write(String.format("%d%n", nVertices));
+		}
+		output.write(String.format("%d%n", nVertices));
 
-	  for (int i = 0; i < getNLayers(); ++i)
-		  output.write(String.format(" %1d", getTessellation(i)));
-	  output.write(GeoTessUtils.NL);
-  }
+		for (int i = 0; i < getNLayers(); ++i)
+			output.write(String.format(" %1d", getTessellation(i)));
+		output.write(GeoTessUtils.NL);
+	}
 
 	/**
 	 * Loads GeoTessMetaData information from a binary file.
@@ -420,21 +442,14 @@ public class GeoTessMetaData
 			// There are static factory methods that read this information,
 			// if available, and use it to determine the class in a file.
 			//String className = 
-					GeoTessUtils.readString(input);
-			
+			GeoTessUtils.readString(input);
+
 			int nProperties = input.readInt();
-			
+
 			for (int i=0; i<nProperties; ++i)
 				properties.put(GeoTessUtils.readString(input, 128), 
 						GeoTessUtils.readString(input).replaceAll("<NEWLINE>", "\n"));
-			
-			setDescription(properties.get("modelDescription"));
-			setModelSoftwareVersion(properties.get("modelSoftwareVersion"));
-			setModelGenerationDate(properties.get("modelGenerationDate"));
-			setEarthShape(EarthShape.valueOf(properties.get("earthShape")));
-			setAttributes(properties.get("attributeNames"), properties.get("attributeUnits"));
-			setDataType(properties.get("dataType"));
-			setLayerNames(properties.get("layerNames"));
+			readProperties();
 		}
 		else
 		{
@@ -510,17 +525,10 @@ public class GeoTessMetaData
 				int p = line.indexOf("=");
 				if (p > 0)
 					properties.put(line.substring(0, p).trim(), 
-						line.substring(p+1, line.length()).trim().replaceAll("<NEWLINE>", "\n"));
+							line.substring(p+1, line.length()).trim().replaceAll("<NEWLINE>", "\n"));
 				line = input.nextLine();
 			}
-			
-			setDescription(properties.get("modelDescription"));
-			setModelSoftwareVersion(properties.get("modelSoftwareVersion"));
-			setModelGenerationDate(properties.get("modelGenerationDate"));
-			setEarthShape(EarthShape.valueOf(properties.get("earthShape")));
-			setAttributes(properties.get("attributeNames"), properties.get("attributeUnits"));
-			setDataType(properties.get("dataType"));
-			setLayerNames(properties.get("layerNames"));
+			readProperties();
 		}
 		else
 		{
@@ -579,6 +587,51 @@ public class GeoTessMetaData
 
 		return this;
 	}
+	
+	/**
+	 * After loading properties from the input file, call this method
+	 * to extract metaData information from the properties object.
+	 * @throws IOException
+	 */
+	private void readProperties() throws IOException
+	{
+		setDescription(properties.get("modelDescription"));
+		setModelSoftwareVersion(properties.get("modelSoftwareVersion"));
+		setModelGenerationDate(properties.get("modelGenerationDate"));
+		setEarthShape(EarthShape.valueOf(properties.get("earthShape")));
+		setAttributes(properties.get("attributeNames"), properties.get("attributeUnits"));
+		setDataType(properties.get("dataType"));
+		setLayerNames(properties.get("layerNames"));
+		String s = properties.get("eulerRotationAngles");
+		if (s != null && !s.equalsIgnoreCase("null"))
+		{
+			String[] a = s.replaceAll(",", " ").trim().split("\\s+");
+			setEulerRotationAngles(
+					Double.parseDouble(a[0].trim()), 
+					Double.parseDouble(a[1].trim()),
+					Double.parseDouble(a[2].trim())
+					);
+		}
+	}
+	
+	/**
+	 * make sure properties are up-to-date with all parameters
+	 * supported by modelFileFormat 3.  If modelFileFormat is > 3,
+	 * all the properties read from the input file will still be in 
+	 * properties map.
+	 */
+	private void updateProperties()
+	{
+		properties.put("modelDescription", getDescription());
+		properties.put("modelSoftwareVersion", getModelSoftwareVersion());
+		properties.put("modelGenerationDate", getModelGenerationDate());
+		properties.put("earthShape", getEarthShape().toString());
+		properties.put("attributeNames", getAttributeNamesString());
+		properties.put("attributeUnits", getAttributeUnitsString());
+		properties.put("dataType", getDataType().toString());
+		properties.put("layerNames", getLayerNamesString());
+		properties.put("eulerRotationAngles", getEulerRotationAnglesString());
+	}
 
 	/**
 	 * Returns the model layer scanner header. The default is "layers: %s%n".
@@ -620,16 +673,17 @@ public class GeoTessMetaData
 	{
 		setLayerNames(layers);
 	}
-	
+
 	/**
 	 * Retrieve a new GeoTessMetaData object that is a deep copy of the contents of this.
 	 * @return a deep copy of this.
+	 * @throws IOException 
 	 */
-	public GeoTessMetaData copy()
+	public GeoTessMetaData copy() 
 	{
 		return new GeoTessMetaData(this);
 	}
-	
+
 	/**
 	 * Sets the input model layer information from the input scanner. Other model
 	 * types may set additional information if this default version is overridden.
@@ -733,7 +787,7 @@ public class GeoTessMetaData
 			buf.append(GeoTessUtils.NL).append(
 					"layerTessIds.length != layerNames.length");
 
- 	  nodeAttributes.checkComplete(buf);
+		nodeAttributes.checkComplete(buf);
 
 		if (modelSoftwareVersion == null)
 			buf.append(GeoTessUtils.NL).append(
@@ -775,7 +829,7 @@ public class GeoTessMetaData
 	{
 		if (other == null || !(other instanceof GeoTessMetaData))
 			return false;
-		
+
 		if (this.getNLayers() != ((GeoTessMetaData)other).getNLayers()
 				|| this.getNAttributes() != ((GeoTessMetaData)other).getNAttributes())
 			return false;
@@ -1104,7 +1158,7 @@ public class GeoTessMetaData
 		if (layerTessIds == null)
 			layerTessIds = new int[layerNames.length];
 	}
-	
+
 	/**
 	 * Retrieve the index of the layer that has the specified name, or -1. Case
 	 * sensitive.
@@ -1131,7 +1185,7 @@ public class GeoTessMetaData
 	{
 		return layerTessIds;
 	}
-	
+
 	/**
 	 * Set layerTessIds; an int[] with an entry for each layer specifying the
 	 * index of the tessellation that supports that layer. For models that
@@ -1306,7 +1360,7 @@ public class GeoTessMetaData
 	public String toString()
 	{
 		StringBuffer buf = new StringBuffer();
-		
+
 		// output the model class name and version string.
 
 		buf.append(modelClassName + ".").append(GeoTessJava.getVersion()).append(GeoTessUtils.NL);
@@ -1319,32 +1373,37 @@ public class GeoTessMetaData
 
 		buf.append(String.format("Input Model File : %s%n", 
 				getInputModelFile() == null ? "null" : getInputModelFile().getAbsolutePath()));
-								
+
 		buf.append(String.format("generated by %s, %s%n", 
 				getModelSoftwareVersion() == null ? "null" : getModelSoftwareVersion(),
-								getModelGenerationDate() == null ? "null" : getModelGenerationDate()));
-								
+						getModelGenerationDate() == null ? "null" : getModelGenerationDate()));
+
 		buf.append(String.format("Input modelFileFormat : %d%n", modelFileFormat));
-		
+
 		buf.append(String.format("Model load time : %1.3f seconds%n", getLoadTimeModel()));
-		
+
 		if (outputModelFile != null)
 		{
 			buf.append(GeoTessUtils.NL);
 			buf.append("Output Model File: ").append(outputModelFile)
-					.append(GeoTessUtils.NL);
+			.append(GeoTessUtils.NL);
 			buf.append(String.format("Model write time: %1.3f seconds%n",
 					getWriteTimeModel()));
 		}
-		
+
 		buf.append("Model Description:").append(GeoTessUtils.NL);
 		buf.append(description).append(GeoTessUtils.NL);
 		buf.append("<end description>\n\n");
-		
+
 		buf.append("EarthShape: ").append(getEarthShape().toString()).append(GeoTessUtils.NL);	
-		
+
 		buf.append(nodeAttributes.toString());
 		toStringLayerNames(buf);
+
+		buf.append("eulerRotationAngles: ").append(eulerRotationAngles == null ? "null" 
+				: getEulerRotationAnglesString());
+
+		buf.append(GeoTessUtils.NL).append(GeoTessUtils.NL);	
 
 		return buf.toString();
 	}
@@ -1441,7 +1500,7 @@ public class GeoTessMetaData
 	{
 		this.modelGenerationDate = modelGenerationDate;
 	}
-	
+
 	/**
 	 * This is protected because applications should obtain the number of 
 	 * vertices from the GeoTessGrid object. 
@@ -1451,7 +1510,7 @@ public class GeoTessMetaData
 	{
 		return nVertices;
 	}
-	
+
 	/**
 	 * Retrieve the format version retrieved from the input 
 	 * model file.
@@ -1586,39 +1645,39 @@ public class GeoTessMetaData
 		layerNormalAreaWeight = lnaw;
 	}
 
-  /**
-   * Retrieve the index of the interface with the specified name.
-   * If majorInterfaces can be parsed to an integer, then that value is
-   * returned.  If not, then the index of the interface with the specified
-   * name is returned.
-   * <p>If more than one name is supplied, the first one that can be successfully
-   * interpreted as either an integer index or a valid interface name is
-   * returned.
-   * <p>The ability to supply alternative names is useful.  For example, some
-   * models call the top of the crust "CRUST" while in other models the
-   * top of the crust is called "UPPER_CRUST".  If both are requested using
-   * this method, the correct index will be returned.
-   * @param majorInterfaces String
-   * @return int
-   */
-  public int getInterfaceIndex(String ...majorInterfaces)
-  {
-    Integer index = null;
-    for (String majorInterface : majorInterfaces)
-    {
-      try
-      {
-        // if layer can be parsed to an integer, interpret it to be major layer index.
-        index = Integer.parseInt(majorInterface.trim());
-      }
-      catch (NumberFormatException ex)
-      {
-        index = getLayerIndex(majorInterface.trim());
-      }
-      if (index != -1) return index;
-    }
-    return -1;
-  }
+	/**
+	 * Retrieve the index of the interface with the specified name.
+	 * If majorInterfaces can be parsed to an integer, then that value is
+	 * returned.  If not, then the index of the interface with the specified
+	 * name is returned.
+	 * <p>If more than one name is supplied, the first one that can be successfully
+	 * interpreted as either an integer index or a valid interface name is
+	 * returned.
+	 * <p>The ability to supply alternative names is useful.  For example, some
+	 * models call the top of the crust "CRUST" while in other models the
+	 * top of the crust is called "UPPER_CRUST".  If both are requested using
+	 * this method, the correct index will be returned.
+	 * @param majorInterfaces String
+	 * @return int
+	 */
+	public int getInterfaceIndex(String ...majorInterfaces)
+	{
+		Integer index = null;
+		for (String majorInterface : majorInterfaces)
+		{
+			try
+			{
+				// if layer can be parsed to an integer, interpret it to be major layer index.
+				index = Integer.parseInt(majorInterface.trim());
+			}
+			catch (NumberFormatException ex)
+			{
+				index = getLayerIndex(majorInterface.trim());
+			}
+			if (index != -1) return index;
+		}
+		return -1;
+	}
 
 	/**
 	 * Return the name of the file from which the grid was loaded.  Not the 
@@ -1634,5 +1693,89 @@ public class GeoTessMetaData
 	 */
 	public void setGridInputFileName(String gridInputFileName) 
 	{ this.gridInputFileName = gridInputFileName; }
+
+	/**
+	 * Specify the 3 euler rotation angles, in degrees, that will control grid rotations.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul>
+	 * @param angles the 3 euler rotation angles, in degrees, that will control grid rotations.
+	 * @throws Exception 
+	 */
+	public void setEulerRotationAngles(double... angles)
+	{
+		if (angles == null)
+		{
+			eulerRotationAngles = null;
+			eulerGridToModel = null;
+			eulerModelToGrid = null;
+		}
+		else
+		{
+			eulerRotationAngles = angles;
+			eulerGridToModel = VectorUnit.getEulerMatrix(
+					Math.toRadians(eulerRotationAngles[0]),
+					Math.toRadians(eulerRotationAngles[1]),
+					Math.toRadians(eulerRotationAngles[2]));
+			eulerModelToGrid = new Matrix(eulerGridToModel).inverse().getArray();
+		}
+	}
+
+	/**
+	 * Retrieve the Euler Rotation Angles that are being used to rotate
+	 * unit vectors from grid to model coordinates, in degrees.
+	 * Returns null if no grid rotations are being applied.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul>
+	 * @return euler rotation angles in degrees.
+	 */
+	public double[] getEulerRotationAngles() {
+		return eulerRotationAngles;
+	}
+	
+	public String getEulerRotationAnglesString()	{
+		return eulerRotationAngles == null ? "null" 
+				: Arrays.toString(eulerRotationAngles)
+				.replace("[", "").replace("]", "").trim();
+	}
+
+	/**
+	 * Retrieve the Euler Rotation Matrix to use to rotate
+	 * unit vectors from grid to model coordinates.  
+	 * Returns null if no grid rotations are being applied.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul>
+	 * @return
+	 */
+	public double[][] getEulerGridToModel() {
+		return eulerGridToModel;
+	}
+
+	/**
+	 * Retrieve the Euler Rotation Matrix to use to rotate
+	 * unit vectors from model to grid coordinates.  
+	 * Returns null if no grid rotations are being applied.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul>
+	 * @return
+	 */
+	public double[][] getEulerModelToGrid() {
+		return eulerModelToGrid;
+	}
 
 }

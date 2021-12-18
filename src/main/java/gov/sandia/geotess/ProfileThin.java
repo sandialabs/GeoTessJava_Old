@@ -82,7 +82,7 @@ public class ProfileThin extends Profile
 	 */
 	public ProfileThin(float radius, Data data) throws GeoTessException
 	{
-		this.radius = radius;
+		this.radius = condition(radius);
 		this.data = data;
 	}
 
@@ -94,10 +94,8 @@ public class ProfileThin extends Profile
 	 * @throws GeoTessException
 	 */
 	protected ProfileThin(Scanner input, GeoTessMetaData metaData)
-			throws GeoTessException, IOException
-	{
-		radius = input.nextFloat();
-		data = Data.getData(input, metaData);
+			throws GeoTessException, IOException {
+		this(input.nextFloat(), Data.getData(input, metaData));
 	}
 
 //	/**
@@ -124,10 +122,8 @@ public class ProfileThin extends Profile
 	 * @throws IOException
 	 */
 	protected ProfileThin(DataInputStream input, GeoTessMetaData metaData)
-			throws GeoTessException, IOException
-	{
-		radius = input.readFloat();
-		data = Data.getData(input, metaData);
+			throws GeoTessException, IOException {
+		this(input.readFloat(), Data.getData(input, metaData));
 	}
 
 	@Override

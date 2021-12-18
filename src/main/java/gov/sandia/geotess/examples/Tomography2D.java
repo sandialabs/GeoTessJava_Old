@@ -552,7 +552,7 @@ public class Tomography2D
 			int vertexId = model.getPointMap().getVertexIndex(pointIndex);
 
 			// get the unit vector of the current vertex
-			double[] vertex = model.getGrid().getVertex(vertexId);
+			double[] vertex = model.getVertex(vertexId);
 
 			// find the indices of the vertexes that are connected to the
 			// current vertex by a single triangle edge
@@ -574,8 +574,7 @@ public class Tomography2D
 				{
 					// neighbor is the vertexId of a model vertex that is
 					// a neighbor of the current vertex.
-					double[] neighborVertex = model.getGrid().getVertex(
-							neighbor);
+					double[] neighborVertex = model.getVertex(neighbor);
 
 					int neighborPoint = model.getPointMap().getPointIndex(
 							neighbor, 0, 0);

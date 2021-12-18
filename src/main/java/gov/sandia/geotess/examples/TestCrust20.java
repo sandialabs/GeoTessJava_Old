@@ -172,7 +172,7 @@ public class TestCrust20
 			// consider just one vertex.  Vertex 57 is located in Tibet
 			int vertexId = 57;
 
-			double[] u = model.getGrid().getVertex(vertexId);
+			double[] u = model.getVertex(vertexId);
 
 			double earthRadius = VectorGeo.getEarthRadius(u);
 

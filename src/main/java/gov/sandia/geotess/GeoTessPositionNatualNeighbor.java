@@ -107,25 +107,25 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 	{
 		super(model, radialType);
 
-		grid.computeCircumCenters();
+		model.getGrid().computeCircumCenters();
 
-		vertices = new ArrayList<ArrayListInt>(grid.getNTessellations());
-		hCoefficients = new ArrayList<ArrayListDouble>(grid.getNTessellations());
+		vertices = new ArrayList<ArrayListInt>(model.getGrid().getNTessellations());
+		hCoefficients = new ArrayList<ArrayListDouble>(model.getGrid().getNTessellations());
 
-		for (int i = 0; i < grid.getNTessellations(); ++i)
+		for (int i = 0; i < model.getGrid().getNTessellations(); ++i)
 		{
 			vertices.add(new ArrayListInt(6));
 			hCoefficients.add(new ArrayListDouble(6));
 		}
 		
-		marked = new BitSet(grid.getNTriangles()+1);
-		marked.set(grid.getNTriangles());
-		//marked = new boolean[grid.getNTriangles()];
+		marked = new BitSet(model.getGrid().getNTriangles()+1);
+		marked.set(model.getGrid().getNTriangles());
+		//marked = new boolean[model.getGrid().getNTriangles()];
 		
 		nnTriangles = new ArrayListInt(64);
 		edges=new ArrayList<Edge>(64);
 		
-		//gridVertices = grid.getVertices();
+		//gridVertices = model.getGrid().getVertices();
 	}
 	
 	/**
@@ -176,7 +176,7 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 	 * Laboratories Report.
 	 */
 	@Override
-	protected void update2D(int tessid) throws GeoTessException
+	protected void update2D(int tessid, double[] unitVector) throws GeoTessException
 	{
 		// get references to the vertices and coefficients involved in interpolation.
 		// These are owned by the super class.
@@ -191,13 +191,13 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 		int triangle = getTriangle(tessid);
 
 		// find the indices of the 3 vertices at the corners of triangle
-		int[] triangleVertices = grid.triangles[triangle];
+		int[] triangleVertices = model.getGrid().triangles[triangle];
 
 		// iterate over the indices of the 3 vertices at the corners of the 
 		// containing triangle.
 		for (int vertex : triangleVertices)
 			// if the interpolation point falls on a grid node:
-			if (GeoTessUtils.dot(unitVector, gridVertices[vertex]) > Math.cos(1e-7))
+			if (GeoTessUtils.dot(unitVector, model.getGrid().getVertex(vertex)) > Math.cos(1e-7))
 			{
 				// the interpolation point coincides with one of the corners of
 				// the triangle in which the interpolation point resides.
@@ -217,13 +217,13 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 		// time triangle walk algorithm was run.
 		int tessLevel = getTessLevel(tessid);
 		// find the corresponding level relative to all levels in the grid.
-		int level = grid.getLevel(tessid, tessLevel);
+		int level = model.getGrid().getLevel(tessid, tessLevel);
 		boolean leftIn, rightIn;
 		
 //		ArrayList<Integer> allTriangles = new ArrayList<Integer>(100);
 //		ArrayList<double[]> vtkCircumCenters=new ArrayList<double[]>(100);
 
-		Edge[] gridSpokeList = grid.getSpokeList(level);
+		Edge[] gridSpokeList = model.getGrid().getSpokeList(level);
 		Edge spoke;
 		
 		//marked[triangle] = true;
@@ -241,7 +241,7 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 			// iterate clockwise over the circular list of spokes until triangleLeft == triangle
 			while (spoke.tLeft != triangle) spoke = spoke.next;
 			
-			neighborIn[vi] = isNNTriangle(spoke.tRight);
+			neighborIn[vi] = isNNTriangle(spoke.tRight, unitVector);
 			firstSpoke[vi] = spoke;
 		}
 
@@ -259,9 +259,9 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 				nnTriangles.add(spoke.tRight);
 			}
 			else
-				edges.add(grid.getEdgeList()[triangle][(vi+1)%3]);
+				edges.add(model.getGrid().getEdgeList()[triangle][(vi+1)%3]);
 
-			int nk = grid.getNeighbor(triangle, (vi+2)%3);
+			int nk = model.getGrid().getNeighbor(triangle, (vi+2)%3);
 
 			while(true)
 			{
@@ -273,26 +273,26 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 					rightIn = neighborIn[(vi+1)%3];
 
 					if (leftIn && !rightIn)
-						edges.add(grid.getEdgeList()[spoke.tLeft][(spoke.cornerj+1)%3]);
+						edges.add(model.getGrid().getEdgeList()[spoke.tLeft][(spoke.cornerj+1)%3]);
 					else if (!leftIn && rightIn)
-						edges.add(grid.getEdgeList()[spoke.tRight][(spoke.next.cornerj+2)%3]);
+						edges.add(model.getGrid().getEdgeList()[spoke.tRight][(spoke.next.cornerj+2)%3]);
 
 					break;
 				}
 
-				rightIn = isNNTriangle(spoke.tRight);
+				rightIn = isNNTriangle(spoke.tRight, unitVector);
 
 				if (leftIn && !rightIn)
-					edges.add(grid.getEdgeList()[spoke.tLeft][(spoke.cornerj+1)%3]);
+					edges.add(model.getGrid().getEdgeList()[spoke.tLeft][(spoke.cornerj+1)%3]);
 				else if (!leftIn && rightIn)
-					edges.add(grid.getEdgeList()[spoke.tRight][(spoke.next.cornerj+2)%3]);
+					edges.add(model.getGrid().getEdgeList()[spoke.tRight][(spoke.next.cornerj+2)%3]);
 
 				if (rightIn)
 				{
 					//marked[spoke.tRight] = true;
 					marked.set(spoke.tRight);
 					nnTriangles.add(spoke.tRight);
-					edges.add(grid.getEdgeList()[spoke.tRight][spoke.next.cornerj]);
+					edges.add(model.getGrid().getEdgeList()[spoke.tRight][spoke.next.cornerj]);
 				}
 			}
 		}
@@ -316,7 +316,7 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 			//System.out.println(preEdge+"  *");
 
 			// set ip1 to the virtual veronoi vertex of the triangle formed by interpolationPoint and preEdge
-			GeoTessUtils.circumCenter(unitVector, gridVertices[vertex], gridVertices[preEdge.vk], ip1);
+			GeoTessUtils.circumCenter(unitVector, model.getGrid().getVertex(vertex), model.getGrid().getVertex(preEdge.vk), ip1);
 
 			// access a random spoke emanating from vertex.
 			spoke = gridSpokeList[vertex];
@@ -326,7 +326,7 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 
 			// spoke is the first surrounding edge and corresponds to a reversed version of preEdge.
 			// set ip2 to the circumCenter of the nnTriangle that is to the right of spoke
-			grid.getCircumCenter(spoke.tRight, ip2);
+			model.getGrid().getCircumCenter(spoke.tRight, ip2);
 
 			while (true)
 			{
@@ -339,7 +339,7 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 					// this is not the last spoke.
 					
 					// set ip3 to the circumcenter of the triangle to the right of the current edge.
-					grid.getCircumCenter(spoke.tRight, ip3);
+					model.getGrid().getCircumCenter(spoke.tRight, ip3);
 					weight += GeoTessUtils.getTriangleArea(ip1, ip2, ip3);
 
 				}
@@ -348,7 +348,7 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 					// this is the last spoke
 					
 					// set ip3 to the virtual veronoi vertex of the triangle formed by interpolationPoint and spoke
-					GeoTessUtils.circumCenter(unitVector, gridVertices[spoke.vk], gridVertices[vertex], ip3);
+					GeoTessUtils.circumCenter(unitVector, model.getGrid().getVertex(spoke.vk), model.getGrid().getVertex(vertex), ip3);
 					weight += GeoTessUtils.getTriangleArea(ip1, ip2, ip3);
 					break;
 
@@ -379,11 +379,12 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 
 	}
 	
-	private boolean isNNTriangle(int triangle)
+	private boolean isNNTriangle(int triangle, double[] u)
 	{
+		// TODO: bug?
 		// Get the circumcenter of triangle on the right.
-		double[] center = grid.getCircumCenter(triangle);	
-		return dot(center, unitVector) > center[3];
+		double[] center = model.getGrid().getCircumCenter(triangle);	
+		return dot(center, u) > center[3];
 	}
 
 	@SuppressWarnings("unused")
@@ -405,11 +406,11 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 
 			output.writeBytes(String.format("DATASET UNSTRUCTURED_GRID%n"));
 
-			output.writeBytes(String.format("POINTS %d double%n", grid.getNVertices()));
+			output.writeBytes(String.format("POINTS %d double%n", model.getGrid().getNVertices()));
 
-			for (int i=0; i < grid.getNVertices(); ++i)
+			for (int i=0; i < model.getGrid().getNVertices(); ++i)
 			{
-				double[] v = grid.getVertex(i);
+				double[] v = model.getVertex(i);
 				output.writeDouble(v[0]);
 				output.writeDouble(v[1]);
 				output.writeDouble(v[2]);
@@ -420,7 +421,7 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 			output.writeBytes(String.format("CELLS %d %d%n", allTriangles.size(), allTriangles.size()*4));
 			for (int triangle : allTriangles)
 			{
-				int[] t = grid.getTriangleVertexIndexes(triangle);
+				int[] t = model.getGrid().getTriangleVertexIndexes(triangle);
 				output.writeInt(3);
 				output.writeInt(t[0]);
 				output.writeInt(t[1]);
@@ -455,11 +456,11 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 
 			output.writeBytes(String.format("DATASET UNSTRUCTURED_GRID%n"));
 
-			output.writeBytes(String.format("POINTS %d double%n", grid.getNVertices()));
+			output.writeBytes(String.format("POINTS %d double%n", model.getGrid().getNVertices()));
 
-			for (int i=0; i < grid.getNVertices(); ++i)
+			for (int i=0; i < model.getGrid().getNVertices(); ++i)
 			{
-				double[] v = grid.getVertex(i);
+				double[] v = model.getVertex(i);
 				output.writeDouble(v[0]);
 				output.writeDouble(v[1]);
 				output.writeDouble(v[2]);
@@ -471,7 +472,7 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 			HashSetInteger.Iterator it = nnTriangles.iterator();
 			while (it.hasNext())
 			{
-				int[] t = grid.getTriangleVertexIndexes(it.next());
+				int[] t = model.getGrid().getTriangleVertexIndexes(it.next());
 				output.writeInt(3);
 				output.writeInt(t[0]);
 				output.writeInt(t[1]);
@@ -506,11 +507,11 @@ public class GeoTessPositionNatualNeighbor extends GeoTessPosition
 
 			output.writeBytes(String.format("DATASET UNSTRUCTURED_GRID%n"));
 
-			output.writeBytes(String.format("POINTS %d double%n", grid.getNVertices()));
+			output.writeBytes(String.format("POINTS %d double%n", model.getGrid().getNVertices()));
 
-			for (int i=0; i < grid.getNVertices(); ++i)
+			for (int i=0; i < model.getGrid().getNVertices(); ++i)
 			{
-				double[] v = grid.getVertex(i);
+				double[] v = model.getVertex(i);
 				output.writeDouble(v[0]);
 				output.writeDouble(v[1]);
 				output.writeDouble(v[2]);

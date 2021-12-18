@@ -1,4 +1,4 @@
-group=${project.groupId}
-artifact=${project.artifactId}
-version=${project.version}
-timestamp=${timestamp}
+group=gnem
+artifact=geo-tess-java
+version=2.6.8
+timestamp=20211217-1513

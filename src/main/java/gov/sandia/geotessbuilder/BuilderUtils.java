@@ -221,8 +221,8 @@ public class BuilderUtils {
 	static public void changeEarthShape(GeoTessModel model, EarthShape newShape) throws Exception {
 		double stretch;
 		for (int vertex = 0; vertex < model.getNVertices(); ++vertex) {
-			stretch = newShape.getEarthRadius(model.getGrid().getVertex(vertex))
-					/ model.getEarthShape().getEarthRadius(model.getGrid().getVertex(vertex));
+			stretch = newShape.getEarthRadius(model.getVertex(vertex))
+					/ model.getEarthShape().getEarthRadius(model.getVertex(vertex));
 
 			for (Profile p : model.getProfiles(vertex))
 				for (int r = 0; r < p.getNRadii(); ++r)
@@ -248,8 +248,8 @@ public class BuilderUtils {
 
 		double stretch;
 		for (int vertex = 0; vertex < model.getNVertices(); ++vertex) {
-			double originalEarthRadius = model.getEarthShape().getEarthRadius(model.getGrid().getVertex(vertex));
-			double newEarthRadius = newShape.getEarthRadius(model.getGrid().getVertex(vertex));
+			double originalEarthRadius = model.getEarthShape().getEarthRadius(model.getVertex(vertex));
+			double newEarthRadius = newShape.getEarthRadius(model.getVertex(vertex));
 
 			double dr = newEarthRadius - originalEarthRadius;
 

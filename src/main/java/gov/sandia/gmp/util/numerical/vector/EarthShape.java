@@ -276,7 +276,7 @@ public enum EarthShape
 	public double getLatDegrees(double[] v) { return toDegrees(getLat(v)); }
 
 	/**
-	 * Retrieve the geocentric latitude of the point defined by unit vector v.
+	 * Retrieve the geocentric latitude of the point defined by unit vector v, in radians.
 	 * 
 	 * @param v double[]
 	 * @return double
@@ -284,12 +284,28 @@ public enum EarthShape
 	public double getGeocentricLat(double[] v) { return asin(v[2]); }
 
 	/**
-	 * Retrieve the geocentric latitude of the point defined by unit vector v.
+	 * Retrieve the geocentric latitude of the point defined by unit vector v, in degrees.
 	 * 
 	 * @param v double[]
 	 * @return double
 	 */
 	public double getGeocentricLatDegrees(double[] v) { return toDegrees(asin(v[2])); }
+
+	/**
+	 * Retrieve the geocentric co-latitude of the point defined by unit vector v, in radians.
+	 * 
+	 * @param v double[]
+	 * @return double
+	 */
+	public double getGeocentricCoLat(double[] v) { return Math.PI/2.-asin(v[2]); }
+
+	/**
+	 * Retrieve the geocentric co-latitude of the point defined by unit vector v, in degrees.
+	 * 
+	 * @param v double[]
+	 * @return double
+	 */
+	public double getGeocentricCoLatDegrees(double[] v) { return toDegrees(getGeocentricCoLat(v)); }
 
 	/**
 	 * Get a unit vector corresponding to a point on the Earth

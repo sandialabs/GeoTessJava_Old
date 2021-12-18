@@ -208,6 +208,15 @@ public class VectorGeo extends VectorUnit
 	{ return earthShape.getGeocentricLat(lat); }
 
 	/**
+	 * Return geocentric co-latitude given a unit vector
+	 * 
+	 * @param a unit vector
+	 * @return geocentric co-latitude in radians
+	 */
+	public static double getGeoCentricCoLatitude(double[] unitVector)
+	{ return earthShape.getGeocentricCoLat(unitVector); }
+
+	/**
 	 * Return geographic latitude given a geocentric latitude
 	 * 
 	 * @param lat

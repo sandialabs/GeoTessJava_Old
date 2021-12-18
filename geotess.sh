@@ -1,7 +1,7 @@
 #!/bin/bash 
 
 # the location of the geotess jar file on the user's system.
-jarfile=/Users/$USER/github/GeoTessJava/target/geotess-2.6.6-jar-with-dependencies.jar
+jarfile=/Users/$USER/github/GeoTessJava/target/geotess-2.6.7-jar-with-dependencies.jar
 
 # the java command to execute geotess application.
 java -jar $jarfile $@

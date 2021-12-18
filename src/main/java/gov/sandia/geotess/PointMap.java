@@ -225,14 +225,14 @@ public class PointMap
 			double rBottom, rTop;
 			double[] layerRadii = new double[model.getMetaData().getNLayers()+1];
 			for (int vertex = 0; vertex < model.getGrid().getNVertices(); ++vertex)
-				if (polygon.contains(model.getGrid().getVertex(vertex)))
+				if (polygon.contains(model.getVertex(vertex)))
 				{
 					pp = model.getProfiles()[vertex];
 					layerRadii[0] = pp[0].getRadiusBottom();
 					for (int l=0; l<model.getMetaData().getNLayers(); ++l)
 						layerRadii[l+1] = pp[l].getRadiusTop();
-					rBottom = bottom.getRadius(model.getGrid().getVertex(vertex), layerRadii);
-					rTop = top.getRadius(model.getGrid().getVertex(vertex), layerRadii);
+					rBottom = bottom.getRadius(model.getVertex(vertex), layerRadii);
+					rTop = top.getRadius(model.getVertex(vertex), layerRadii);
 					for (int layer = bottom.getLayerIndex(); layer <= top.getLayerIndex(); ++layer)
 					{
 						p = pp[layer];
@@ -248,7 +248,7 @@ public class PointMap
 		else
 		{
 			for (int vertex = 0; vertex < model.getGrid().getNVertices(); ++vertex)
-				if (polygon.contains(model.getGrid().getVertex(vertex)))
+				if (polygon.contains(model.getVertex(vertex)))
 				{
 					pp = model.getProfiles()[vertex];
 					for (int layer = 0; layer < model.getMetaData().getNLayers(); ++layer)
@@ -282,14 +282,14 @@ public class PointMap
 		double[] layerRadii = new double[model.getMetaData().getNLayers()+1];
 		for (int vertex = 0; vertex < model.getGrid().getNVertices(); ++vertex)
 		{
-			if (polygon.contains(model.getGrid().getVertex(vertex)))
+			if (polygon.contains(model.getVertex(vertex)))
 			{
 				pp = model.getProfiles()[vertex];
 				layerRadii[0] = pp[0].getRadiusBottom();
 				for (int l=0; l<model.getMetaData().getNLayers(); ++l)
 					layerRadii[l+1] = pp[l].getRadiusTop();
-				rBottom = polygon.getBottom().getRadius(model.getGrid().getVertex(vertex), layerRadii);
-				rTop = polygon.getTop().getRadius(model.getGrid().getVertex(vertex), layerRadii);
+				rBottom = polygon.getBottom().getRadius(model.getVertex(vertex), layerRadii);
+				rTop = polygon.getTop().getRadius(model.getVertex(vertex), layerRadii);
 				for (int layer = polygon.getBottom().getLayerIndex(); layer <= polygon.getTop().getLayerIndex(); ++layer)
 				{
 					p = pp[layer];
@@ -397,6 +397,19 @@ public class PointMap
 	public int getVertexIndex(int pointIndex)
 	{
 		return pointMap.get(pointIndex)[0];
+	}
+
+	/**
+	 * Retrieve the index of the vertex that corresponds to the specified
+	 * pointIndex.
+	 * 
+	 * @param pointIndex
+	 * @return the index of the vertex that corresponds to the specified
+	 *         pointIndex.
+	 */
+	public double[] getVertex(int pointIndex)
+	{
+		return model.getVertex(pointMap.get(pointIndex)[0]);
 	}
 
 	/**
@@ -822,7 +835,7 @@ public class PointMap
 	public double[] getPointVector(int pointIndex)
 	{
 		int[] map = pointMap.get(pointIndex);
-		double[] v = model.getGrid().getVertex(map[0]).clone();
+		double[] v = model.getVertex(map[0]).clone();
 		double r = model.getProfiles()[map[0]][map[1]].getRadius(map[2]);
 		v[0] *= r;
 		v[1] *= r;
@@ -838,7 +851,7 @@ public class PointMap
 	 */
 	public double[] getPointUnitVector(int pointIndex)
 	{
-		return model.getGrid().getVertex(pointMap.get(pointIndex)[0]);
+		return model.getVertex(pointMap.get(pointIndex)[0]);
 	}
 
 	/**
@@ -862,7 +875,7 @@ public class PointMap
 	public double getPointDepth(int pointIndex)
 	{
 		int[] map = pointMap.get(pointIndex);
-		return model.getEarthShape().getEarthRadius(model.getGrid().getVertex(pointMap.get(pointIndex)[0]))
+		return model.getEarthShape().getEarthRadius(model.getVertex(map[0]))
 				-model.getProfiles()[map[0]][map[1]].getRadius(map[2]);
 	}
 
@@ -877,8 +890,8 @@ public class PointMap
 	{
 		int[] m1 = pointMap.get(pointIndex1);
 		int[] m2 = pointMap.get(pointIndex2);
-		return GeoTessUtils.getDistance3D(model.getGrid().getVertex(m1[0]),
-				model.getProfiles()[m1[0]][m1[1]].getRadius(m1[2]), model.getGrid().getVertex(m2[0]),
+		return GeoTessUtils.getDistance3D(model.getVertex(m1[0]),
+				model.getProfiles()[m1[0]][m1[1]].getRadius(m1[2]), model.getVertex(m2[0]),
 				model.getProfiles()[m2[0]][m2[1]].getRadius(m2[2]));
 	}
 

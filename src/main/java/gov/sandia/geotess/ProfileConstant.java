@@ -82,6 +82,8 @@ public class ProfileConstant extends Profile
 	 */
 	public ProfileConstant(float radiusBottom, float radiusTop, Data data) throws GeoTessException
 	{
+		radiusBottom = condition(radiusBottom);
+		radiusTop = condition(radiusTop);
 		if (radiusTop < radiusBottom)
 			throw new GeoTessException(String.format("%nradiusTop %1.3f must be > radiusBottom %1.3f%n",
 					radiusTop, radiusBottom));
@@ -98,11 +100,9 @@ public class ProfileConstant extends Profile
 	 * @throws GeoTessException
 	 */
 	protected ProfileConstant(Scanner input, GeoTessMetaData metaData)
-			throws GeoTessException, IOException
-			{
-		this(input.nextFloat(), input.nextFloat(), Data
-				.getData(input, metaData));
-			}
+			throws GeoTessException, IOException {
+		this(input.nextFloat(), input.nextFloat(), Data.getData(input, metaData));
+	}
 
 	//	/**
 	//	 * Constructor that loads required information from netcdf Iterator objects.
@@ -129,11 +129,9 @@ public class ProfileConstant extends Profile
 	 * @throws IOException
 	 */
 	protected ProfileConstant(DataInputStream input, GeoTessMetaData metaData)
-			throws GeoTessException, IOException
-			{
-		this(input.readFloat(), input.readFloat(), Data
-				.getData(input, metaData));
-			}
+			throws GeoTessException, IOException {
+		this(input.readFloat(), input.readFloat(), Data.getData(input, metaData));
+	}
 
 	@Override
 	protected void write(DataOutputStream output) throws IOException

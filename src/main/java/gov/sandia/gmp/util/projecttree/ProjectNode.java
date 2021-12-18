@@ -47,7 +47,7 @@ import java.util.Set;
  * @author sballar
  *
  */
-public class ProjectNode implements Comparator<ProjectNode> {
+public class ProjectNode implements Comparable<ProjectNode> {
 	protected String groupId;
 	protected String projectId;
 	protected String version;
@@ -205,7 +205,7 @@ public class ProjectNode implements Comparator<ProjectNode> {
 	}
 
 	@Override
-	public int compare(ProjectNode o1, ProjectNode o2) {
-		return o1.toString().compareTo(o2.toString());
+	public int compareTo(ProjectNode o) {
+		return this.toString().compareTo(o.toString());
 	}
 }

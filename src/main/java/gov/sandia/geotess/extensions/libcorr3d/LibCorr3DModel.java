@@ -69,28 +69,6 @@ import gov.sandia.gmp.util.numerical.vector.EarthShape;
  */
 public class LibCorr3DModel extends GeoTessModel
 {
-	public static void main(String[] args)
-	{
-		try
-		{
-			LibCorr3DModel model = new LibCorr3DModel(args[0], args[1]);
-			
-			System.out.println(model.toString()+"\n\n");
-			
-			System.out.println(GeoTessModelUtils.statistics(model));			
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	public static String getVersion()
-	{
-		return "1.2.3";
-	}
-	
-	
 	private static int nextIndex;
 	public final int index;
 	
@@ -1324,7 +1302,7 @@ public class LibCorr3DModel extends GeoTessModel
 		BackgroundError backgroundModelError = new BackgroundError(errFile);
 		
 		// add the background uncertainty to the uncertainty attached to each vertex.
-		for (int i=0; i<data.length; ++i) data[i][1] += backgroundModelError.getError(grid.getVertex(i));
+		for (int i=0; i<data.length; ++i) data[i][1] += backgroundModelError.getError(getVertex(i));
 		
 		// populate the Profile objects associated with each vertex
 		initializeProfiles();

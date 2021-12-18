@@ -69,9 +69,10 @@ public class ProfileEmpty extends Profile
 	 * @param radiusTop
 	 * @throws GeoTessException
 	 */
-	public ProfileEmpty(float radiusBottom, float radiusTop)
-			throws GeoTessException
+	public ProfileEmpty(float radiusBottom, float radiusTop) throws GeoTessException
 	{
+		radiusBottom = condition(radiusBottom);
+		radiusTop = condition(radiusTop);
 		if (radiusTop < radiusBottom)
 			throw new GeoTessException("%nradiusTop must be > radiusBottom%n");
 		this.radiusBottom = radiusBottom;
@@ -85,8 +86,7 @@ public class ProfileEmpty extends Profile
 	 * @throws GeoTessException
 	 * @throws GeoTessException
 	 */
-	protected ProfileEmpty(Scanner input) throws GeoTessException
-	{
+	protected ProfileEmpty(Scanner input) throws GeoTessException {
 		this(input.nextFloat(), input.nextFloat());
 	}
 
@@ -108,9 +108,7 @@ public class ProfileEmpty extends Profile
 	 * @throws GeoTessException
 	 * @throws IOException
 	 */
-	protected ProfileEmpty(DataInputStream input) throws GeoTessException,
-			IOException
-	{
+	protected ProfileEmpty(DataInputStream input) throws GeoTessException, IOException {
 		this(input.readFloat(), input.readFloat());
 	}
 

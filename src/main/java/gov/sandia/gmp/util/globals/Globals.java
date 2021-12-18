@@ -37,6 +37,8 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -1575,4 +1577,16 @@ public class Globals implements Serializable
       return Double.isNaN(az) || az == na ? na : Math.round(conditionAzDegrees(az)*x)/x;
     }
 
+    /**
+     * Retrieve the name of the computer that this code is currently running on.
+     * If an error occurs, returns "unknown_host"
+     * @return
+     */
+	public static String getComputerName()
+	{
+		try {
+			return InetAddress.getLocalHost().getHostName().split("\\.")[0];
+		} catch (UnknownHostException e) {
+			return "unknown_host";		}
+	}
 }

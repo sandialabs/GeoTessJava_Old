@@ -48,6 +48,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
@@ -70,6 +71,7 @@ import gov.sandia.gmp.util.numerical.polygon.GreatCircle;
 import gov.sandia.gmp.util.numerical.polygon.Polygon;
 import gov.sandia.gmp.util.numerical.vector.EarthShape;
 import gov.sandia.gmp.util.numerical.vector.Vector3D;
+import gov.sandia.gmp.util.numerical.vector.VectorUnit;
 
 /**
  * <b>GeoTessModel</b> manages the <i>grid</i> and <i>data</i> that comprise a
@@ -200,7 +202,7 @@ public class GeoTessModel
 	 */
 	private ConcurrentLinkedQueue<GradientCalculator> gradientCalculatorPool =
 			new ConcurrentLinkedQueue<GradientCalculator>();
-
+	
 	/**
 	 * Simple return class that can be over-ridden by derived types to return
 	 * extended meta-data objects.
@@ -544,7 +546,7 @@ public class GeoTessModel
 	 */
 	public static int getReuseGridMapSize()
 	{
-		return reuseGridMap.size();
+		return reuseGridMap == null ? 0 : reuseGridMap.size();
 	}
 
 	/**
@@ -630,14 +632,35 @@ public class GeoTessModel
 
 	/**
 	 * Retrieve a reference to the 2D grid object.
+	 * Note that if grid rotation is active, this will return 
+	 * the un-rotated grid.  See getGridRotated() to get the 
+	 * rotated grid.
 	 * 
 	 * @return reference to the 2D grid object.
 	 */
-	public GeoTessGrid getGrid()
-	{
-		return grid;
-	}
+	public GeoTessGrid getGrid() { return grid; }
 
+	/**
+	 * Retrieve the grid associated with this model.  If grid rotation
+	 * is active, this method will rotate a copy of the grid managed by
+	 * this model from grid to model coordinates and return the copy
+	 * (this can be quite expensive).  
+	 * If grid rotation is not active, this method returns a reference
+	 * to the existing grid (cheap).
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul>
+	 * 
+	 * @return the grid managed by this model.
+	 */
+	public GeoTessGrid getGridRotated() { 
+		if (metaData.getEulerGridToModel() == null) return this.grid;
+		return new GeoTessGrid(this.grid, metaData.getEulerGridToModel());
+		}
+	
 	/**
 	 * Retrieve a reference to the MetaData object which stores all manner of
 	 * information about the model, including the names of the layers, the names
@@ -645,10 +668,7 @@ public class GeoTessModel
 	 * 
 	 * @return a reference to the MetaData.
 	 */
-	public GeoTessMetaData getMetaData()
-	{
-		return metaData;
-	}
+	public GeoTessMetaData getMetaData() { return metaData; }
 
 	/**
 	 * Retrieve a new GeoTessModel object that is a copy of this. The new model
@@ -677,7 +697,7 @@ public class GeoTessModel
 
 		return copy;
 	}
-
+	
 	/**
 	 * Return number of vertices in the 2D geographic grid.
 	 * 
@@ -686,6 +706,165 @@ public class GeoTessModel
 	public int getNVertices()
 	{
 		return grid.getNVertices();
+	}
+
+	/**
+	 * Get the specified vertex in model coordinates.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
+	 * @param i the index of the desired grid vertex
+	 * @return unit vector of the specified vertex in model coordinates
+	 */
+	public double[] getVertex(int i)
+	{
+		if (metaData.getEulerGridToModel() == null)
+			return grid.getVertex(i);
+		return VectorUnit.eulerRotation(grid.getVertex(i), 
+				metaData.getEulerGridToModel());
+	}
+
+	/**
+	 * Get the unit vector of the vertex that occupies the specified position in
+	 * the hierarchy, in model coordinates.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
+	 * @param tessId
+	 *            tessellation index
+	 * @param level
+	 *            index of a level relative to the first level of the specified
+	 *            tessellation
+	 * @param triangle
+	 *            the i'th triangle in the specified tessellation/level
+	 * @param corner
+	 *            the i'th corner of the specified tessellation/level/triangle
+	 * @return unit vector of a vertex in model coordinates
+	 */
+	public double[] getVertex(int tessId, int level, int triangle, int corner)
+	{
+		if (metaData.getEulerGridToModel() == null)
+			return grid.getVertex(tessId, level, triangle, corner);
+		return VectorUnit.eulerRotation(grid.getVertex(tessId, level, triangle, corner), 
+				metaData.getEulerGridToModel());
+	}
+	
+	/**
+	 * Retrieve all of the vertices in model coordinates. 
+	 * Vertices consists of an
+	 * nVertices x 3 array of doubles. The double[3] array associated with each
+	 * vertex is the 3 component unit vector that defines the position of the
+	 * vertex.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
+	 * @return vertices in model coordinates.
+	 */
+	public double[][] getVertices()
+	{
+		if (metaData.getEulerGridToModel() == null)
+			return grid.getVertices();
+		
+		double[][] vertices = new double[getNVertices()][];
+		for (int i=0; i<getNVertices(); ++i)
+			vertices[i] = VectorUnit.eulerRotation(grid.getVertex(i), 
+					metaData.getEulerGridToModel());
+		return vertices;
+	}
+
+	/**
+	 * Retrieve a set containing the unit vectors of all the vertices that are
+	 * connected together by triangles on the specified level, in model coordinates.
+	 * 
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
+	 * <p>
+	 * @param tessId the tessellation index
+	 * @param level index of a level relative to the first level of the 
+	 * specified tessellation.
+	 * @return the set containing the unit vectors of all the vertices that are
+	 * connected together by triangles on the specified level, in model coordinates.
+	 */
+	public HashSet<double[]> getVertices(int tessId, int level)
+	{ 
+		if (metaData.getEulerGridToModel() == null)
+			return grid.getVertices(tessId, level);
+		
+		HashSet<double[]> vertices = new HashSet<>();
+		for (double[] v : grid.getVertices(tessId, level))
+			vertices.add(VectorUnit.eulerRotation(v, 
+					metaData.getEulerGridToModel()));
+		return vertices;
+	}
+
+	/**
+	 * Retrieve a set containing the unit vectors of all the vertices that are
+	 * connected together by triangles on the specified level. The vertices will
+	 * be in model coordinates.
+	 * 
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
+	 * <p>
+	 * @param level index of a level relative to all levels of all tessellations
+	 * @return the set containing the unit vectors of all the vertices that are
+	 * connected together by triangles on the specified level, in model coordinates.
+	 */
+	public HashSet<double[]> getVertices(int level)
+	{
+		if (metaData.getEulerGridToModel() == null)
+			return grid.getVertices(level);
+		
+		HashSet<double[]> vertices = new HashSet<>();
+		for (double[] v : grid.getVertices(level))
+			vertices.add(VectorUnit.eulerRotation(v, 
+					metaData.getEulerGridToModel()));
+		return vertices;
+	}
+
+	/**
+	 * Retrieve a set containing the unit vectors of all the vertices that are
+	 * connected together by triangles on the top level of the specified 
+	 * tessellation, in model coordinates.
+	 * 
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
+	 * <p>
+	 * @param tessId tessellation index
+	 * @return the set containing the unit vectors of all the vertices that are
+	 * connected together by triangles on the top level of the specified 
+	 * tessellation, in model coordinates.
+	 */
+	public HashSet<double[]> getVerticesTopLevel(int tessId)
+	{
+		if (metaData.getEulerGridToModel() == null)
+			return grid.getVerticesTopLevel(tessId);
+		
+		HashSet<double[]> vertices = new HashSet<>();
+		for (double[] v : grid.getVerticesTopLevel(tessId))
+			vertices.add(VectorUnit.eulerRotation(v, 
+					metaData.getEulerGridToModel()));
+		return vertices;
 	}
 
 	/**
@@ -743,7 +922,7 @@ public class GeoTessModel
 	 * @return the depth in km of the node at vertexId, layerId, nodeId.
 	 */
 	public double getDepth(int vertexId, int layerId, int nodeId)
-	{ return getEarthShape().getEarthRadius(grid.getVertex(vertexId))
+	{ return getEarthShape().getEarthRadius(getVertex(vertexId))
 			- profiles[vertexId][layerId].getRadius(nodeId);
 	}
 
@@ -756,7 +935,7 @@ public class GeoTessModel
 	 */
 	public double getLayerDepthTop(int vertexId, int layerId)
 	{
-		return getEarthShape().getEarthRadius(grid.getVertex(vertexId))
+		return getEarthShape().getEarthRadius(getVertex(vertexId))
 				- profiles[vertexId][layerId].getRadiusTop();
 	}
 
@@ -769,7 +948,7 @@ public class GeoTessModel
 	 */
 	public double getLayerDepthBottom(int vertexId, int layerId)
 	{
-		return getEarthShape().getEarthRadius(grid.getVertex(vertexId))
+		return getEarthShape().getEarthRadius(getVertex(vertexId))
 				- profiles[vertexId][layerId].getRadiusBottom();
 	}
 
@@ -1581,7 +1760,7 @@ public class GeoTessModel
 			p = profiles[vertex][layerIndex];
 			int node = p.findClosestRadiusIndex(radius);
 
-			distance = GeoTessUtils.getDistance3D(location, radius, grid.getVertex(vertex), p.getRadius(node));
+			distance = GeoTessUtils.getDistance3D(location, radius, getVertex(vertex), p.getRadius(node));
 			if (distance < minDistance)
 			{
 				minDistance = distance;
@@ -3357,7 +3536,7 @@ public class GeoTessModel
 			throws IOException
 	{
 		try {
-			testTestModelIntegrity();
+			testModelIntegrity();
 		} catch (GeoTessException e) {
 			throw new IOException(e);
 		}
@@ -3493,7 +3672,7 @@ public class GeoTessModel
 			throws IOException
 	{
 		try {
-			testTestModelIntegrity();
+			testModelIntegrity();
 		} catch (GeoTessException e) {
 			throw new IOException(e);
 		}
@@ -3521,7 +3700,7 @@ public class GeoTessModel
 	 * 
 	 * @throws GeoTessException
 	 */
-	public void testTestModelIntegrity() throws GeoTessException
+	public void testModelIntegrity() throws GeoTessException
 	{
 		ProfileType ptype = profiles[0][0].getType();
 		boolean isSurface = ptype == ProfileType.SURFACE || ptype == ProfileType.SURFACE_EMPTY;
@@ -3559,7 +3738,7 @@ public class GeoTessModel
 											layer,
 											p[layer].getRadiusBottom(),
 											dr));
-				else if (Math.abs(dr) > 0.0)
+				else if (Math.abs(dr) > 0.)
 				{
 					// repair any missmatch that is less than 0.01 km
 					int up = layer;
@@ -3605,9 +3784,9 @@ public class GeoTessModel
 											+ "layer=%d, vertex=%d, lat=%1.4f, lon=%1.4f",
 											p[layer].getRadiusBottom(), p[layer]
 													.getRadiusTop(), layer, vertex,
-													getEarthShape().getLatDegrees(grid
-															.getVertex(vertex)), getEarthShape()
-													.getLonDegrees(grid.getVertex(vertex))));
+													getEarthShape().getLatDegrees(
+															getVertex(vertex)), getEarthShape()
+													.getLonDegrees(getVertex(vertex))));
 		}
 
 		//System.out.print(repairs.toString());
@@ -3626,7 +3805,7 @@ public class GeoTessModel
 							String.format(
 									"%nAt vertex %d the radius at top of layer %d is %1.3f %n"
 											+ "and the radius at the bottom of layer %d is %1.3f.  They "
-											+ "differ by %1.3f",
+											+ "differ by %1.6f",
 											vertex,
 											layer - 1,
 											p[layer - 1].getRadiusTop(),
@@ -4067,11 +4246,11 @@ public class GeoTessModel
 					throws GeoTessException
 	{
 		// loop over all vertices
-		for (int vrtx = 0; vrtx < profiles.length; ++vrtx)
+		for (int vrtx = 0; vrtx < getNVertices(); ++vrtx)
 		{
 			// loop over all layers
 			Profile[] pLayers = profiles[vrtx];
-			double[] vrtxUnitVec = getGrid().getVertex(vrtx);
+			double[] vrtxUnitVec = getVertex(vrtx);
 			for (int layer = 0; layer < layers.length; ++layer)
 			{
 				// get the profile for this vertex/layer and compute its gradients
@@ -4108,7 +4287,7 @@ public class GeoTessModel
 		int nodeIndex   = pm.getNodeIndex(pointIndex);
 
 		Profile p       = profiles[vertexIndex][layerId];
-		p.computeGradients(this, attributeIndex, getGrid().getVertex(vertexIndex),
+		p.computeGradients(this, attributeIndex, getVertex(vertexIndex),
 				layerId, reciprocal);
 		p.getGradient(nodeIndex, attributeIndex, gradient);
 	}
@@ -4139,7 +4318,7 @@ public class GeoTessModel
 					throws GeoTessException
 	{
 		Profile p = profiles[vertexIndex][layerId];
-		p.computeGradients(this, attributeIndex, getGrid().getVertex(vertexIndex),
+		p.computeGradients(this, attributeIndex, getVertex(vertexIndex),
 				layerId, reciprocal);
 		p.getGradient(nodeIndex, attributeIndex, gradient);
 	}
@@ -4172,7 +4351,7 @@ public class GeoTessModel
 					throws GeoTessException
 	{
 		Profile p = profiles[vertexIndex][layerId];
-		p.computeGradients(this, attributeIndex, getGrid().getVertex(vertexIndex),
+		p.computeGradients(this, attributeIndex, getVertex(vertexIndex),
 				layerId, reciprocal);
 		p.getGradient(attributeIndex, radius, gradient);
 	}
@@ -4349,7 +4528,7 @@ public class GeoTessModel
 			if ((p.getType() == ProfileType.SURFACE) ||
 					(p.getType() == ProfileType.SURFACE_EMPTY))
 			{
-				return grid.getVertex(vertexIndex);
+				return getVertex(vertexIndex);
 			}
 			else
 			{
@@ -4405,13 +4584,13 @@ public class GeoTessModel
 		double r;
 		double[] v;
 		int[] vIndexes = grid.getTriangleVertexIndexes(triangleIndex);
-		v = grid.getVertex(vIndexes[0]);
+		v = getVertex(vIndexes[0]);
 		r = profiles[vIndexes[0]][layerId].getRadiusTop();
 		double[] v0 = {r * v[0], r * v[1], r * v[2]};
-		v = grid.getVertex(vIndexes[1]);
+		v = getVertex(vIndexes[1]);
 		r = profiles[vIndexes[1]][layerId].getRadiusTop();
 		double[] v1 = {r * v[0], r * v[1], r * v[2]};
-		v = grid.getVertex(vIndexes[2]);
+		v = getVertex(vIndexes[2]);
 		r = profiles[vIndexes[2]][layerId].getRadiusTop();
 		double[] v2 = {r * v[0], r * v[1], r * v[2]};
 
@@ -4472,7 +4651,7 @@ public class GeoTessModel
 			{
 				// set the position where we want to interpolate data from the old model.
 				// Radius is irrelevant at this point.
-				pos.set(newGrid.getVertex(vertex), 1.);
+				pos.set(newModel.getVertex(vertex), 1.);
 				
 				if (pos.getVertices().length == 1)
 					newModel.setProfile(vertex, 0, getProfile(pos.getVertices()[0], 0).copy());
@@ -4507,7 +4686,7 @@ public class GeoTessModel
 				{
 					// set the position to the layer and unit vector where we want to interpolate
 					// data from the old model. Radius is irrelevant at this point.
-					pos.set(layer, newGrid.getVertex(vertex), 6371.);
+					pos.set(layer, newModel.getVertex(vertex), 6371.);
 
 					// get the indices of the vertices in the old model that contribute to 
 					// interpolation of data.
@@ -4618,4 +4797,5 @@ public class GeoTessModel
 		// base class GeoTessModels don't have extra data, so nothing to do.
 		// Derived classes must override this and copy their data.
 	}
+
 }

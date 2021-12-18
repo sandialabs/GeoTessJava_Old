@@ -39,6 +39,7 @@ import gov.sandia.geotess.GeoTessException;
 import gov.sandia.geotess.GeoTessPosition;
 import gov.sandia.gmp.util.globals.InterpolatorType;
 import gov.sandia.gmp.util.globals.Site;
+import gov.sandia.gmp.util.numerical.vector.VectorGeo;
 import gov.sandia.gmp.util.numerical.vector.VectorUnit;
 
 public class LibCorr3D
@@ -61,19 +62,6 @@ public class LibCorr3D
 	private InterpolatorType interpTypeHorz, interpTypeRadial;
 
 	/**
-	 * This position object supports interpolating values of supported
-	 * attributes at requested locations.
-	 */
-	private GeoTessPosition gtpos;
-
-	/**
-	 * When computing horizontal derivatives, this position object is used to
-	 * interpolate values of supported attributes that are close to the location
-	 * of gtpos in order to compute derivative numerically.
-	 */
-	private GeoTessPosition derivPos;
-
-	/**
 	 * Constructor that instantiates a new LibCorr3DModelsGMP.
 	 * 
 	 * @param rootPath
@@ -85,9 +73,10 @@ public class LibCorr3D
 	 * @throws IOException
 	 */
 	public LibCorr3D(File rootPath, String relGridPath, boolean preloadModels, 
-			InterpolatorType interpTypeHorz, InterpolatorType interpTypeRadial) throws IOException
+			InterpolatorType interpTypeHorz, InterpolatorType interpTypeRadial) throws Exception
 	{
-		libcorrModels = new LibCorr3DModels(rootPath, relGridPath, preloadModels);
+		libcorrModels = new LibCorr3DModels(rootPath, relGridPath, preloadModels, null,
+				interpTypeHorz, interpTypeRadial);
 		this.interpTypeHorz = interpTypeHorz;
 		this.interpTypeRadial = interpTypeRadial;
 		this.index = nextIndex++;
@@ -185,57 +174,10 @@ public class LibCorr3D
 	 */
 	public double getPathCorrection(int lookupIndex,
 			double[] sourcePosition, double sourceRadius)
-			throws GeoTessException, IOException
+					throws Exception
 	{
-		if (lookupIndex < 0)
-			return Double.NaN;
-		
-		gtpos = updateGeoTessPosition(gtpos, libcorrModels.getModel(lookupIndex), 
-				interpTypeHorz, interpTypeRadial);
-		if (gtpos == null)
-			return Double.NaN;
-
-		gtpos.set(0, sourcePosition, sourceRadius);
-		return gtpos.getValue(0);
-	}
-
-	/**
-	 * Update and return a reference to the supplied GeoTessPosition object with
-	 * the model that corresponds to the specified station. Returns null if the
-	 * model that corresponds to the specified station-phase-attribute does not
-	 * exist.
-	 * 
-	 * @param gtPos
-	 * @param model
-	 * @param interpTypeHorz
-	 * @param interpTypeRadial
-	 * @return a reference to the successfully updated GeoTessPosition object,
-	 *         or null if specified sta-phase-attribute is not supported.
-	 * @throws GeoTessException
-	 */
-	private GeoTessPosition updateGeoTessPosition(GeoTessPosition gtPos,
-			LibCorr3DModel model, InterpolatorType interpTypeHorz, InterpolatorType interpTypeRadial)
-			throws GeoTessException
-	{
-		// if station/phase/attribute is not supported, return null
-		if (model == null)
-			return null;
-
-		// if position object is currently null or supports the wrong
-		// interpolator type, get a new one from the model.
-		if (gtPos == null 
-				|| gtPos.getInterpolatorType() != interpTypeHorz 
-				|| gtPos.getInterpolatorTypeRadial() != interpTypeRadial
-				|| !gtPos.getModel().getGrid().getGridID().equals(model.getGrid().getGridID()))
-			return model.getGeoTessPosition(interpTypeHorz, interpTypeRadial);
-
-		// if the model currently supported by the position object is
-		// different from the requested model, change the model
-		// supported by the position object.
-		if (((LibCorr3DModel) gtPos.getModel()).index != model.index)
-			gtPos.setModel(model);
-
-		return gtPos;
+		GeoTessPosition pos = libcorrModels.getModel(lookupIndex);
+		return pos == null ? Double.NaN : pos.set(0, sourcePosition, sourceRadius).getValue(0);
 	}
 
 	/**
@@ -250,38 +192,30 @@ public class LibCorr3D
 	 * @throws IOException
 	 */
 	public double getPathCorrDerivHorizontal(int lookupIndex, double[] sourcePosition, double sourceRadius)
-			throws GeoTessException, IOException
+			throws Exception
 	{
-		if (lookupIndex < 0)
-			return Double.NaN;
+		if (lookupIndex < 0 || VectorGeo.isPole(sourcePosition))
+			return Double.NaN; 
 
-		gtpos = updateGeoTessPosition(gtpos, libcorrModels.getModel(lookupIndex), interpTypeHorz, interpTypeRadial);
+		GeoTessPosition gtpos = libcorrModels.getModel(lookupIndex);
 
 		if (gtpos == null)
 			return Double.NaN;
 
-		gtpos.set(0, sourcePosition, sourceRadius);
+		double[] site = ((LibCorr3DModel) gtpos.getModel()).getSite().getUnitVector();
 
-		derivPos = updateGeoTessPosition(derivPos, libcorrModels.getModel(lookupIndex), interpTypeHorz, interpTypeRadial);
+		double az = VectorUnit.azimuth(sourcePosition, site, Double.NaN);
 
-		if (derivPos == null)
-			return Double.NaN;
-
-		double az = VectorUnit.azimuth(sourcePosition, 
-				libcorrModels.getModel(lookupIndex).getSite().getUnitVector(),
-				Double.NaN);
 		if (Double.isNaN(az))
 			return Double.NaN;
 
-		double dx = 1e-3;
-		double[] y = new double[3];
-		if (!VectorUnit.move(sourcePosition, dx, az + Math.PI, y))
-			return Double.NaN;
+		double[] y = VectorUnit.move(sourcePosition, 1e-3, az + Math.PI);
 
-		derivPos.set(0, y, sourceRadius);
+		double yval = gtpos.set(0, y, sourceRadius).getValue(0);
 
-		return ((derivPos.getValue(0) - gtpos.getValue(0)) / dx);
+		double sval = gtpos.set(0, sourcePosition, sourceRadius).getValue(0);
 
+		return (yval - sval) / 1e-3;
 	}
 
 	/**
@@ -296,32 +230,23 @@ public class LibCorr3D
 	 * @throws IOException
 	 */
 	public double getPathCorrDerivLat(int lookupIndex, double[] sourcePosition, double sourceRadius)
-			throws GeoTessException, IOException
+			throws Exception
 	{
-		if (lookupIndex < 0)
-			return Double.NaN;
+		if (lookupIndex < 0 || VectorGeo.isPole(sourcePosition))
+			return Double.NaN; 
 
-		gtpos = updateGeoTessPosition(gtpos, libcorrModels.getModel(lookupIndex), interpTypeHorz, interpTypeRadial);
+		GeoTessPosition gtpos = libcorrModels.getModel(lookupIndex);
 
 		if (gtpos == null)
 			return Double.NaN;
 
-		gtpos.set(0, sourcePosition, sourceRadius);
+		double[] y = VectorUnit.moveNorth(sourcePosition, 1e-3);
 
-		derivPos = updateGeoTessPosition(derivPos, libcorrModels.getModel(lookupIndex), interpTypeHorz, interpTypeRadial);
+		double yval = gtpos.set(0, y, sourceRadius).getValue(0);
 
-		if (derivPos == null)
-			return Double.NaN;
+		double sval = gtpos.set(0, sourcePosition, sourceRadius).getValue(0);
 
-		double dx = 1e-3;
-		double[] y = new double[3];
-		if (!VectorUnit.moveNorth(sourcePosition, dx, y))
-			return Double.NaN;
-
-		derivPos.set(0, y, sourceRadius);
-
-		return ((derivPos.getValue(0) - gtpos.getValue(0)) / dx);
-
+		return (yval - sval) / 1e-3;
 	}
 
 	/**
@@ -336,32 +261,23 @@ public class LibCorr3D
 	 * @throws IOException
 	 */
 	public double getPathCorrDerivLon(int lookupIndex, double[] sourcePosition, double sourceRadius)
-			throws GeoTessException, IOException
+			throws Exception
 	{
-		if (lookupIndex < 0)
-			return Double.NaN;
+		if (lookupIndex < 0 || VectorGeo.isPole(sourcePosition))
+			return Double.NaN; 
 
-		gtpos = updateGeoTessPosition(gtpos, libcorrModels.getModel(lookupIndex), interpTypeHorz, interpTypeRadial);
+		GeoTessPosition gtpos = libcorrModels.getModel(lookupIndex);
 
 		if (gtpos == null)
 			return Double.NaN;
 
-		gtpos.set(0, sourcePosition, sourceRadius);
+		double[] y = VectorUnit.move(sourcePosition, 1e-3, Math.PI/2);
 
-		derivPos = updateGeoTessPosition(derivPos, libcorrModels.getModel(lookupIndex), interpTypeHorz, interpTypeRadial);
+		double yval = gtpos.set(0, y, sourceRadius).getValue(0);
 
-		if (derivPos == null)
-			return Double.NaN;
+		double sval = gtpos.set(0, sourcePosition, sourceRadius).getValue(0);
 
-		double dx = 1e-3;
-		double[] y = new double[3];
-		if (!VectorUnit.move(sourcePosition, dx, Math.PI/2, y))
-			return Double.NaN;
-
-		derivPos.set(0, y, sourceRadius);
-
-		return ((derivPos.getValue(0) - gtpos.getValue(0)) / dx);
-
+		return (yval - sval) / 1e-3;
 	}
 
 	/**
@@ -376,65 +292,52 @@ public class LibCorr3D
 	 * @throws IOException
 	 */
 	public double getPathCorrDerivRadial(int lookupIndex, double[] sourcePosition, double sourceRadius)
-			throws GeoTessException, IOException
+			throws Exception
 	{
-		try
-		{
-			gtpos = updateGeoTessPosition(gtpos, libcorrModels.getModel(lookupIndex),
-					interpTypeHorz, interpTypeRadial);
-			if (gtpos == null)
-				return Double.NaN;
-			gtpos.set(0, sourcePosition, sourceRadius);
+		GeoTessPosition gtpos = libcorrModels.getModel(lookupIndex);
 
-			// if layer thickness is zero return zero
-			double thick = gtpos.getLayerThickness();
-			if (thick < 1e-2)
-				return 0.;
-
-			double dr = 0.1;
-			// if layer thickness is less than dr, compute derivative
-			// from values at top and bottom of the layer.
-			if (thick <= dr)
-			{
-				gtpos.setRadius(0, gtpos.getRadiusTop());
-				double pctop = gtpos.getValue(0);
-				gtpos.setRadius(0, gtpos.getRadiusBottom());
-				return (pctop - gtpos.getValue(0)) / thick;
-			}
-
-			if (sourceRadius + dr >= gtpos.getRadiusTop())
-			{
-				double rtop = gtpos.getRadiusTop();
-				gtpos.setRadius(0, rtop);
-				double pctop = gtpos.getValue(0);
-				gtpos.setRadius(0, rtop - dr);
-				return (pctop - gtpos.getValue(0)) / dr;
-			}
-
-			if (sourceRadius < gtpos.getRadiusBottom())
-			{
-				double rbot = gtpos.getRadiusBottom();
-				gtpos.setRadius(0, rbot);
-				double pcbot = gtpos.getValue(0);
-				gtpos.setRadius(0, rbot + dr);
-				return (gtpos.getValue(0) - pcbot) / dr;
-			}
-
-			double pc = gtpos.getValue(0);
-			gtpos.setRadius(0, sourceRadius + dr);
-			return (gtpos.getValue(0) - pc) / dr;
-		}
-		catch (GeoTessException e)
-		{
-			throw new GeoTessException(e);
-		}
-	}
-
-	public Site getCurrentSite()
-	{
 		if (gtpos == null)
-			return null;
-		return ((LibCorr3DModel) gtpos.getModel()).getSite();
+			return Double.NaN;
+
+		gtpos.set(0, sourcePosition, sourceRadius);
+
+		// if layer thickness is zero return zero
+		double thick = gtpos.getLayerThickness();
+		if (thick < 1e-2)
+			return 0.;
+
+		double dr = 0.1;
+		// if layer thickness is less than dr, compute derivative
+		// from values at top and bottom of the layer.
+		if (thick <= dr)
+		{
+			gtpos.setRadius(0, gtpos.getRadiusTop());
+			double pctop = gtpos.getValue(0);
+			gtpos.setRadius(0, gtpos.getRadiusBottom());
+			return (pctop - gtpos.getValue(0)) / thick;
+		}
+
+		if (sourceRadius + dr >= gtpos.getRadiusTop())
+		{
+			double rtop = gtpos.getRadiusTop();
+			gtpos.setRadius(0, rtop);
+			double pctop = gtpos.getValue(0);
+			gtpos.setRadius(0, rtop - dr);
+			return (pctop - gtpos.getValue(0)) / dr;
+		}
+
+		if (sourceRadius < gtpos.getRadiusBottom())
+		{
+			double rbot = gtpos.getRadiusBottom();
+			gtpos.setRadius(0, rbot);
+			double pcbot = gtpos.getValue(0);
+			gtpos.setRadius(0, rbot + dr);
+			return (gtpos.getValue(0) - pcbot) / dr;
+		}
+
+		double pc = gtpos.getValue(0);
+		gtpos.setRadius(0, sourceRadius + dr);
+		return (gtpos.getValue(0) - pc) / dr;
 	}
 
 	public InterpolatorType getPathCorrInterpolatorTypeHorizontal()
@@ -446,18 +349,6 @@ public class LibCorr3D
 	{
 		return interpTypeRadial;
 	}
-
-//	public void setPathCorrInterpolatorTypeHorizontal(InterpolatorType interpType)
-//			throws GeoTessException
-//	{
-//		this.interpTypeHorz = interpType;
-//	}
-//
-//	public void setPathCorrInterpolatorTypeRadial(InterpolatorType interpType)
-//			throws GeoTessException
-//	{
-//		this.interpTypeRadial = interpType;
-//	}
 
 	public String getPathCorrRootDirectory() throws IOException
 	{
@@ -486,20 +377,14 @@ public class LibCorr3D
 		return libcorrModels.isSupported(station, phase, attribute);
 	}
 
-//	public double getUncertainty(Site station, String phase,
-//			String attribute, double[] sourcePosition, double sourceRadius)
-//			throws GeoTessException, IOException
-//	{
-//		return getUncertainty(getLookupIndex(station, phase, attribute), sourcePosition, sourceRadius);
-//	}
-//
 	public double getUncertainty(int lookupIndex, double[] sourcePosition, double sourceRadius)
-			throws GeoTessException, IOException
+			throws Exception
 	{
 		if (lookupIndex < 0)
 			return Double.NaN;
-		
-		gtpos = updateGeoTessPosition(gtpos, libcorrModels.getModel(lookupIndex), interpTypeHorz, interpTypeRadial);
+
+		GeoTessPosition gtpos = libcorrModels.getModel(lookupIndex);
+
 		if (gtpos == null)
 			return Double.NaN;
 		gtpos.set(0, sourcePosition, sourceRadius);
@@ -526,13 +411,6 @@ public class LibCorr3D
 	public Site getSite(String sta, double epochTime)
 	{
 		return libcorrModels.getSite(sta, epochTime);
-	}
-
-	public int getPositionIndex()
-	{
-		if (gtpos == null)
-			System.out.println("Debug in LibCorr3D getPositionIndex");
-		return gtpos == null ? -1 : gtpos.getIndex();
 	}
 
 }

@@ -120,6 +120,9 @@ public class ProfileNPoint extends Profile
 	 */
 	public ProfileNPoint(float[] radii, Data[] data) throws GeoTessException
 	{
+		for (int i=0; i<radii.length; ++i)
+			radii[i] = condition(radii[i]);
+		
 		if (radii.length < 2 || radii.length != data.length)
 			throw new GeoTessException(
 					String.format(
@@ -149,7 +152,7 @@ public class ProfileNPoint extends Profile
 		data = new Data[radii.length];
 		for (int k = 0; k < radii.length; ++k)
 		{
-			radii[k] = input.nextFloat();
+			radii[k] = condition(input.nextFloat());
 			data[k] = Data.getData(input, metaData);
 		}
 	}
@@ -170,7 +173,7 @@ public class ProfileNPoint extends Profile
 		data = new Data[radii.length];
 		for (int k = 0; k < radii.length; ++k)
 		{
-			radii[k] = input.readFloat();
+			radii[k] = condition(input.readFloat());
 			data[k] = Data.getData(input, metaData);
 		}
 	}

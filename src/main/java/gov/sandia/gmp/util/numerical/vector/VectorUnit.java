@@ -35,6 +35,7 @@ package gov.sandia.gmp.util.numerical.vector;
 import static java.lang.Math.PI;
 import static java.lang.Math.abs;
 import static java.lang.Math.acos;
+import static java.lang.Math.atan2;
 import static java.lang.Math.cos;
 import static java.lang.Math.sin;
 import static java.lang.Math.sqrt;
@@ -1139,9 +1140,34 @@ public class VectorUnit
 
 		return d == 0 ? Double.NaN : 1./d;
 	}
+	
+	/**
+	 * Given a location, retrieve the Euler rotation angles, in radians, that will rotate
+	 * the north pole ([0., 0., 1.]) to the specified location.
+	 * The 3 angles are: longitude+PI/2, geocentric colatitude, -PI/2.  
+	 * @param unitVector
+	 * @return euler rotation angles in radians.
+	 */
+	public static double[] getEulerRotationAngles(double[] v)
+	{
+		return new double[] {atan2(v[1], v[0]) + Math.PI/2., acos(v[2]), -PI/2.};
+	}
 
 	/**
-	 * Given three Euler angles in radians, retreive the Euler rotation matrix.
+	 * Given a location, retrieve the Euler rotation angles, in degrees, that will rotate
+	 * the north pole ([0., 0., 1.]) to the specified location.
+	 * The 3 angles are: longitude+90, geocentric colatitude, -90  
+	 * @param unitVector
+	 * @return euler rotation angles in degrees.
+	 */
+	public static double[] getEulerRotationAnglesDegrees(double[] v)
+	{
+		double[] e = getEulerRotationAngles(v);
+		return new double[] {Math.toDegrees(e[0]), Math.toDegrees(e[1]), Math.toDegrees(e[2])};
+	}
+
+	/**
+	 * Given three Euler angles in radians, retrieve the Euler rotation matrix.
 	 * 
 	 * <p>Euler rotation angles:
 	 * <p>Given two coordinate systems xyz and XYZ with common origin,

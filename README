@@ -21,6 +21,4 @@ GeoTessJava is delivered with the following components:
 - Run-scripts geotess.sh and geotessbuilder.sh.  User's will likely have to 
   edit some paths defined in the run scripts to point to correct locations 
   on their systems.
-  
-Javadocs code documentation is available here: https://sandialabs.github.io/GeoTessJava/
 

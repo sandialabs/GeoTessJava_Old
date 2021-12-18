@@ -61,12 +61,10 @@ public class GeoTessPositionLinear extends GeoTessPosition
 	{
 		super(model, radialType);
 
-		vertices = new ArrayList<ArrayListInt>(grid.getNTessellations());
-		hCoefficients = new ArrayList<ArrayListDouble>(grid.getNTessellations());
+		vertices = new ArrayList<ArrayListInt>(model.getGrid().getNTessellations());
+		hCoefficients = new ArrayList<ArrayListDouble>(model.getGrid().getNTessellations());
 
-		//int nTess = grid.getNTessellations();
-
-		for (int i = 0; i < grid.getNTessellations(); ++i) {
+		for (int i = 0; i < model.getGrid().getNTessellations(); ++i) {
 			vertices.add(new ArrayListInt(3));
 			hCoefficients.add(new ArrayListDouble(3));
 		}
@@ -115,7 +113,7 @@ public class GeoTessPositionLinear extends GeoTessPosition
 	 * @throws GeoTessException
 	 */
 	@Override
-	protected void update2D(int tessid) throws GeoTessException
+	protected void update2D(int tessid, double[] unitVector) throws GeoTessException
 	{
 		// get references to the vertices and coefficients involved in interpolation.
 		// These are owned by the super class.
@@ -130,13 +128,13 @@ public class GeoTessPositionLinear extends GeoTessPosition
 		int triangle = getTriangle(tessid);
 		
 		// find the indices of the 3 vertices at the corners of triangle
-		int[] corners = grid.triangles[triangle];
+		int[] corners = model.getGrid().triangles[triangle];
 
 		// iterate over the indices of the 3 vertices at the corners of the 
 		// containing triangle.
 		for (int vertex : corners)
 			// if the interpolation point falls on a grid node:
-			if (GeoTessUtils.dot(unitVector, grid.vertices[vertex]) > Math.cos(1e-7))
+			if (GeoTessUtils.dot(unitVector, model.getGrid().vertices[vertex]) > Math.cos(1e-7))
 			{
 				// the interpolation point coincides with one of the corners of
 				// the triangle in which the interpolation point resides.

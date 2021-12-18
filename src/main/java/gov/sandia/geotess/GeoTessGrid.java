@@ -325,10 +325,8 @@ public class GeoTessGrid
 		this.triangles = triangles;
 		this.vertices = vertices;
 		initialize();
-
-		testGrid();
-
 		recomputeGridID();
+		testGrid();
 	}
 	
 	public GeoTessGrid(GeoTessGrid other)
@@ -354,6 +352,35 @@ public class GeoTessGrid
 		
 		initialize();
 		this.gridID = other.gridID;
+	}
+
+	public GeoTessGrid(GeoTessGrid other, double[][] eulerRotationMatrix)
+	{
+		this.gridSoftwareVersion = this.getClass().getCanonicalName();
+		this.gridGenerationDate = GMTFormat.getNow();
+		
+		this.tessellations = new int[other.tessellations.length][];
+		for (int i = 0; i < tessellations.length; ++i)
+			this.tessellations[i] = other.tessellations[i].clone();
+		
+		this.levels = new int[other.levels.length][];
+		for (int i = 0; i < levels.length; ++i)
+			this.levels[i] = other.levels[i].clone();
+		
+		this.vertices = new double[other.vertices.length][];
+		if (eulerRotationMatrix == null)
+			for (int i = 0; i < vertices.length; ++i)
+				this.vertices[i] = other.vertices[i].clone();
+		else
+			for (int i = 0; i < vertices.length; ++i)
+				this.vertices[i] = VectorUnit.eulerRotation(other.vertices[i], eulerRotationMatrix);
+		
+		this.triangles = new int[other.triangles.length][];
+		for (int i = 0; i < triangles.length; ++i)
+			this.triangles[i] = other.triangles[i].clone();
+		
+		initialize();
+		recomputeGridID();
 	}
 
 	public GeoTessGrid(GeoTessGrid other, double euler0, double euler1, double euler2, boolean inDegrees)
@@ -575,18 +602,6 @@ public class GeoTessGrid
 	}
 
 	/**
-	 * Retrieve the unit vector that corresponds to the specified vertex.
-	 * 
-	 * @param vertex
-	 *            index of desired vertex
-	 * @return the unit vector that corresponds to the specified vertex.
-	 */
-	public double[] getVertex(int vertex)
-	{
-		return vertices[vertex];
-	}
-
-	/**
 	 * Get the index of the vertex that occupies the specified position in the
 	 * hierarchy.
 	 * 
@@ -607,9 +622,30 @@ public class GeoTessGrid
 	}
 
 	/**
+	 * Get the specified vertex in grid coordinates.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
+	 * @param i the index of the desired grid vertex
+	 * @return unit vector of the specified vertex in grid coordinates
+	 */
+	public double[] getVertex(int i)
+	{
+		return vertices[i];
+	}
+
+	/**
 	 * Get the unit vector of the vertex that occupies the specified position in
-	 * the hierarchy.
-	 * 
+	 * the hierarchy, in grid coordinates.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
 	 * @param tessId
 	 *            tessellation index
 	 * @param level
@@ -619,7 +655,7 @@ public class GeoTessGrid
 	 *            the i'th triangle in the specified tessellation/level
 	 * @param corner
 	 *            the i'th corner of the specified tessellation/level/triangle
-	 * @return unit vector of a vertex
+	 * @return unit vector of a vertex in grid coordinates
 	 */
 	public double[] getVertex(int tessId, int level, int triangle, int corner)
 	{
@@ -628,14 +664,21 @@ public class GeoTessGrid
 	}
 
 	/**
-	 * Retrieve a reference to all of the vertices. Vertices consists of an
+	 * Retrieve a reference to all of the vertices in grid coordinates. 
+	 * Vertices consists of an
 	 * nVertices x 3 array of doubles. The double[3] array associated with each
 	 * vertex is the 3 component unit vector that defines the position of the
 	 * vertex.
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
 	 * <p>
 	 * Users should not modify the contents of the array.
 	 * 
-	 * @return a reference to the vertices.
+	 * @return a reference to the vertices in grid coordinates.
 	 */
 	public double[][] getVertices()
 	{
@@ -756,25 +799,39 @@ public class GeoTessGrid
 
 	/**
 	 * Retrieve a set containing the unit vectors of all the vertices that are
-	 * connected together by triangles on the specified level.
+	 * connected together by triangles on the specified level, in grid coordinates.
 	 * 
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
+	 * <p>
 	 * @param tessId the tessellation index
 	 * @param level index of a level relative to the first level of the 
 	 * specified tessellation.
 	 * @return the set containing the unit vectors of all the vertices that are
-	 * connected together by triangles on the specified level.
+	 * connected together by triangles on the specified level, in grid coordinates.
 	 */
 	public HashSet<double[]> getVertices(int tessId, int level)
 	{ return getVertices(tessellations[tessId][0]+level); }
 
 	/**
 	 * Retrieve a set containing the unit vectors of all the vertices that are
-	 * connected together by triangles on the specified level.
+	 * connected together by triangles on the specified level. The vertices will
+	 * be in grid coordinates.
 	 * 
-	 * @param level
-	 *            index of a level relative to all levels of all tessellations
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
+	 * <p>
+	 * @param level index of a level relative to all levels of all tessellations
 	 * @return the set containing the unit vectors of all the vertices that are
-	 * connected together by triangles on the specified level.
+	 * connected together by triangles on the specified level, in grid coordinates.
 	 */
 	public HashSet<double[]> getVertices(int level)
 	{
@@ -791,12 +848,19 @@ public class GeoTessGrid
 	/**
 	 * Retrieve a set containing the unit vectors of all the vertices that are
 	 * connected together by triangles on the top level of the specified 
-	 * tessellation.
+	 * tessellation, in grid coordinates.
 	 * 
+	 * <p>There are possibly two geographic coordinate systems at play:
+	 * <ul>
+	 * <li>Grid coordinates, where grid vertex 0 points to the north pole.
+	 * <li>Model coordinates, where grid vertex 0 points to some other location,
+	 * typically a station location.
+	 * </ul> 
+	 * <p>
 	 * @param tessId tessellation index
 	 * @return the set containing the unit vectors of all the vertices that are
 	 * connected together by triangles on the top level of the specified 
-	 * tessellation.
+	 * tessellation, in grid coordinates.
 	 */
 	public HashSet<double[]> getVerticesTopLevel(int tessId)
 	{
@@ -1653,15 +1717,6 @@ public class GeoTessGrid
 	 * Identify the neighbors and descendants of each triangle. This method is
 	 * called during construction of a GeoTessGrid object (i.e., when it is
 	 * loaded from a file). Applications should not call this method.
-	 * 
-	 * <p>
-	 * If optimization is set to SPEED, then for each edge of a triangle the
-	 * unit vector normal to the plane of the great circle containing the edge
-	 * will be computed during input of the grid from file and stored in memory.
-	 * With this information, the walking triangle algorithm can use dot
-	 * products instead of scalar triple products when determining if a point
-	 * resides inside a triangle. While much more computationally efficient, it
-	 * requires alot of memory to store all those unit vectors.
 	 */
 	protected void initialize()
 	{

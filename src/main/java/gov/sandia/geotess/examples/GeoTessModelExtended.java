@@ -78,9 +78,8 @@ public class GeoTessModelExtended extends GeoTessModel
 		/**
 		 * This string is just an example that represents whatever 
 		 * extra data users application may require.
-		 * <br>Do not initialize extraData!
 		 */
-		protected String extraData = "default value"; 
+		protected String extraData; 
 		
 	    /**
 	     * Classes that extend GeoTessModel must override this method

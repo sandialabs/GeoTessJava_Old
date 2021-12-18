@@ -42,6 +42,7 @@ import gov.sandia.geotess.GeoTessException;
 import gov.sandia.geotess.GeoTessGrid;
 import gov.sandia.gmp.util.numerical.platonicsolid.PlatonicSolid;
 import gov.sandia.gmp.util.numerical.vector.VectorGeo;
+import gov.sandia.gmp.util.numerical.vector.VectorUnit;
 
 public class InitialSolid {
 
@@ -109,11 +110,8 @@ public class InitialSolid {
 	 * @param inDegrees if true, lat,lon are in degrees, otherwise radians.
 	 */
 	public void rotate(double lat, double lon, boolean inDegrees) {
-		if (inDegrees)
-			rotate(new double[] { Math.toRadians(lon + 90.),
-					pi_over_2 - VectorGeo.getGeoCentricLatitude(Math.toRadians(lat)), pi_over_2 });
-		else
-			rotate(new double[] { lon + pi_over_2, pi_over_2 - VectorGeo.getGeoCentricLatitude(lat), pi_over_2 });
+		rotate(VectorUnit.getEulerRotationAngles(inDegrees ? VectorGeo.getVectorDegrees(lat, lon)
+				: VectorGeo.getVector(lat, lon)));
 	}
 
 	/**

@@ -59,7 +59,7 @@ import gov.sandia.gmp.util.containers.hash.sets.HashSetInteger.Iterator;
 import gov.sandia.gmp.util.globals.Globals;
 import gov.sandia.gmp.util.globals.InterpolatorType;
 
-public class RefineModel {
+public class RefineModel extends GeoTessModel {
 
 	/**
 	 * 
@@ -539,34 +539,11 @@ public class RefineModel {
 				if (newModel.getProfile(v, layer) == null)
 					throw new Exception(String.format("Profile vertex=%d layer=%d is null", v, layer));
 
-		// ensure that the radii at layer boundaries are ==.
-		StringBuffer errors = new StringBuffer();
-		int nerrors=0;
-		for (int v=0; v<newModel.getNVertices(); ++v)
-		{
-			for (int layer=0; layer < newModel.getNLayers()-1; ++layer)
-			{
-				float[] rb = newModel.getProfile(v, layer).getRadii();
-				float[] ra = newModel.getProfile(v, layer+1).getRadii();
-				
-				if (rb[rb.length-1] != ra[0])
-				{
-					++nerrors;
-					if (nerrors <= 10)
-						errors.append(String.format("Layer radii differ at layer boundary.  "
-							+ "layer=%d, vertex=%d difference=%1.4f%n",
-							layer, v, ra[0]-rb[rb.length-1]));
-				}
-			}
-		}
-		if (nerrors > 10)
-			errors.append(String.format("Plus %d more...%n", nerrors-10));
-		if (nerrors > 0)
-			throw new Exception(errors.toString());
-
 		// if the oldModel had a Polygon set, set the same Polygon in the
 		// newModel. Otherwise set activeRegion to include all nodes in the model.
 		newModel.setActiveRegion(oldModel.getPointMap().getPolygon());
+
+		newModel.testModelIntegrity();
 
 		return newModel;
 	}
