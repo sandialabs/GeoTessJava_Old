@@ -6,7 +6,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>gnem</groupId>
 	<artifactId>geotess</artifactId>
-	<version>2.6.7</version>
+	<version>2.6.8</version>
 	<name>geotess</name>
 	<distributionManagement>
 		<repository>
@@ -33,6 +33,7 @@
 				<filtering>false</filtering>
 				<excludes>
 					<exclude>geo-tess-java.version</exclude>
+					<exclude>geo-tess-builder.version</exclude>
 				</excludes>
 			</resource>
 			<resource>
@@ -40,6 +41,7 @@
 				<filtering>true</filtering>
 				<includes>
 					<include>geo-tess-java.version</include>
+					<include>geo-tess-builder.version</include>
 				</includes>
 			</resource>
 		</resources>
